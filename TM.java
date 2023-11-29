@@ -63,18 +63,28 @@ class TaskManager {
 class Task {
     private String name;
     private String description;
-    private String date;
-    private String time;
+    private String dateandtime;
+    private String size;
     private TState status;
 
-    public Task(String name, String description, String dateandtime) {
+    public Task(String name) {
         this.name = name;
-        this.description = description;
-        this.date = dateandtime.split(" ")[0];
-        this.time = dateandtime.split(" ")[1];
+        this.description = "";
+        this.dateandtime = "";
     }
 
-    
+    // setters
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setDateandtime(String dateandtime) {
+        this.dateandtime = dateandtime;
+    }
+
+    public void setSize(String size) {
+        this.size = size;
+    }
 
     public String getStatus() {
         return this.status.toString();
@@ -85,6 +95,7 @@ class Task {
 interface TState {
     public void start();
     public void stop();
+    public String toString();
 }
 
 class TStateNew implements TState {
@@ -94,5 +105,9 @@ class TStateNew implements TState {
 
     public void stop() {
         // do nothing
+    }
+
+    public String toString() {
+        return "New";
     }
 }
