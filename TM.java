@@ -1,20 +1,24 @@
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 
 public class TM {
     public static void main(String[] args) {
         // get input
         String[] input = args;
         // run time manager
-        System.out.println(isProperCommand(input));
         if(isProperCommand(input)){
             TaskManager.getInstance().run(input);
-        }
-            
+        }   
     }
 
     private static boolean isProperCommand(String[] input) {
@@ -22,48 +26,79 @@ public class TM {
     }
 }
 
-// Task Manager Class (Singleton)
-class TaskManager {
-    private static TaskManager instance;
+enum CommandType{
+    START, STOP, DESCRIPTION, SUMMARY, SIZE, RENAME, DELETE;
+}
+
+interface Command {
+    public void execute(String[] input);
+
+    default String getTime(){
+        LocalDateTime currentTime = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+        return currentTime.format(formatter);
+    }
+}
+
+class StartCommand implements Command{
+    @Override
+    public void execute(String[] input) {
+        FileUtil.writeToFile(getTime() + "\tStart");
+    }
+}
+
+class FileUtil {
     private static final String LOGFILE = "TM.log";
-    
-    private TaskManager() {
-        // create or open log file
-        File file = new File(LOGFILE);
 
+    public static void writeToFile(String content) {
         try {
-            file.createNewFile();
-        } catch (Exception e) {}
+            FileWriter writer = new FileWriter(LOGFILE, true);
+            writer.write(content + '\n');
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("An error occurred while writing to the file: " + LOGFILE);
+            e.printStackTrace();
+        }
+    }
 
-        writeLogfile("new log entry");
-        // read log file
+    public static String readFromFile() {
+        StringBuilder content = new StringBuilder();
         try {
-           Scanner scanner = new Scanner(file);
-           while (scanner.hasNext()) {
+            File file = new File(LOGFILE); // Specify the file
+            Scanner scanner = new Scanner(file);
+
+            while (scanner.hasNext()) {
                 String line = scanner.nextLine();
-                System.out.println(line);
+                content.append(line).append("\n");
                 // Process the line as needed
             }
             scanner.close();
-        } catch (Exception e) {}
+        } catch (IOException e) {
+            System.out.println("An error occurred while reading from the file: " + LOGFILE);
+            e.printStackTrace();
+        }
+        return content.toString();
+    }
+}
+
+// Task Manager Class (Singleton)
+class TaskManager {
+    private static TaskManager instance;
+    private Map<CommandType, Command> commandMap = new HashMap<>(); // injected in, or obtained from a factory
+    
+    private TaskManager() {
     }
 
     public void run(String[] input) {
-        System.out.println(Arrays.toString(input));
+        commandMap.put(CommandType.START, new StartCommand());
+        CommandType action = CommandType.valueOf(input[0].toUpperCase());
+        Command command = commandMap.get(action);
+        command.execute(input);
     }
 
     private String[] splitInput(String input) {
         String[] split = input.split("\\s+");
         return split;
-    }
-
-    private void writeLogfile(String log) {
-        // write to log file
-        try {
-            FileWriter writer = new FileWriter(LOGFILE, true);
-            writer.write(log);
-            writer.close();
-        } catch (Exception e) {}
     }
 
     public static TaskManager getInstance() {
@@ -125,4 +160,10 @@ class TStateNew implements TState {
     public String toString() {
         return "New";
     }
+
+    // @Override
+    // public void execute() {
+    //     // TODO Auto-generated method stub
+    //     throw new UnsupportedOperationException("Unimplemented method 'execute'");
+    // }
 }
