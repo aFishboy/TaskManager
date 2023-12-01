@@ -17,3 +17,9 @@ new log entry
 2023-12-01 00:10:58.471	Rename	Foo	Fi
 2023-12-01 00:12:36.730	Delete	Foo
 2023-12-01 00:13:22.155	Size	Foo	XL
+2023-12-01T12:40:58.144201600	Start	FOO
+2023-12-01T12:55:45.854513400	Start	FOO
+2023-12-01T13:07:14.683226700	Describe	foo	"hello world"
+2023-12-01T13:07:35.678884700	Describe	foo	"hello world"	XL
+2023-12-01T13:09:45.383290400	Describe	foo	"hello world"
+2023-12-01T13:22:51.267741400	Describe	foo	"hello worlds"

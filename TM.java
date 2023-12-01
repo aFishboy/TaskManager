@@ -14,15 +14,11 @@ import java.time.format.DateTimeFormatter;
 public class TM {
     public static void main(String[] args) {
         // get input
-        String[] input = args;
+        TaskManager tm = TaskManager.getInstance();
         // run time manager
-        if(isProperCommand(input)){
-            TaskManager.getInstance().run(input);
+        if(tm.isProperCommand(args)){
+            tm.run(args);
         }   
-    }
-
-    private static boolean isProperCommand(String[] input) {
-       return input.length >= 2 && input.length <= 4;
     }
 }
 
@@ -33,6 +29,9 @@ enum CommandType{
 interface Command {
     public void execute(String[] input);
 
+    // I feel like we don't need to necessarily have this method in the interface
+    // and the formatting doesn't have to be the same as Posnett's, we can just use the default LocalDateTime format
+    // especially in the case of the summary command, where we don't log it to the file
     default String getTime(){
         LocalDateTime currentTime = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
@@ -43,47 +42,55 @@ interface Command {
 class StartCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(getTime() + "\tStart\t" + input[1]);
+        FileUtil.writeToFile(LocalDateTime.now() + "\tStart\t" + input[1]);
     }
 }
 
 class  StopCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(getTime() + "\tStop\t" + input[1]);
+        FileUtil.writeToFile(LocalDateTime.now() + "\tStop\t" + input[1]);
     }
 }
 
 class DescribeCommand implements Command{
     @Override
     public void execute(String[] input) {
-        String description = "\t\"" + input[2] + "\"";
-        String size = "";
+        String[] sizes = {"S", "M", "L", "XL"};
+        String log = input[1] + "\t\"" + input[2] + "\"";
+
         if (input.length == 4) {
-            size = "\t" + input[3];
+            // check if size is correct format (S, M, L, XL), if not, ignore size since it is optional
+            // should discuss if this should ignore the error (warn the user) or throw an exception
+            if (Arrays.asList(sizes).contains(input[3])) {
+                log += "\t" + input[3];
+            }
+            else {
+                System.out.println("Invalid size, ignoring... Please enter a valid size next time (S, M, L, XL)");
+            }
         }
-        FileUtil.writeToFile(getTime() + "\tDescribe\t" + input[1] + description + size);
+        FileUtil.writeToFile(LocalDateTime.now() + "\tDescribe\t" + log);
     }
 }
 
 class SizeCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(getTime() + "\tSize\t" + input[1] + "\t" + input[2]);
+        FileUtil.writeToFile(LocalDateTime.now() + "\tSize\t" + input[1] + "\t" + input[2]);
     }
 }
 
 class RenameCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(getTime() + "\tRename\t" + input[1] + "\t" + input[2]);
+        FileUtil.writeToFile(LocalDateTime.now() + "\tRename\t" + input[1] + "\t" + input[2]);
     }
 }
 
 class DeleteCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(getTime() + "\tDelete\t" + input[1]);
+        FileUtil.writeToFile(LocalDateTime.now() + "\tDelete\t" + input[1]);
     }
 }
 
@@ -141,13 +148,10 @@ class TaskManager {
         command.execute(input);
     }
 
-    /*
-    private String[] splitInput(String input) {
-        String[] split = input.split("\\s+");
-        return split;
+    public boolean isProperCommand(String[] input) {
+       return input.length >= 2 && input.length <= 4;
     }
-    */
-
+    
     public static TaskManager getInstance() {
         if(instance == null) {
             instance = new TaskManager();
