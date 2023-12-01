@@ -27,7 +27,7 @@ public class TM {
 }
 
 enum CommandType{
-    START, STOP, DESCRIPTION, SUMMARY, SIZE, RENAME, DELETE;
+    START, STOP, DESCRIBE, SUMMARY, SIZE, RENAME, DELETE;
 }
 
 interface Command {
@@ -43,7 +43,47 @@ interface Command {
 class StartCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(getTime() + "\tStart");
+        FileUtil.writeToFile(getTime() + "\tStart\t" + input[1]);
+    }
+}
+
+class  StopCommand implements Command{
+    @Override
+    public void execute(String[] input) {
+        FileUtil.writeToFile(getTime() + "\tStop\t" + input[1]);
+    }
+}
+
+class DescribeCommand implements Command{
+    @Override
+    public void execute(String[] input) {
+        String description = "\t\"" + input[2] + "\"";
+        String size = "";
+        if (input.length == 4) {
+            size = "\t" + input[3];
+        }
+        FileUtil.writeToFile(getTime() + "\tDescribe\t" + input[1] + description + size);
+    }
+}
+
+class SizeCommand implements Command{
+    @Override
+    public void execute(String[] input) {
+        FileUtil.writeToFile(getTime() + "\tSize\t" + input[1] + "\t" + input[2]);
+    }
+}
+
+class RenameCommand implements Command{
+    @Override
+    public void execute(String[] input) {
+        FileUtil.writeToFile(getTime() + "\tRename\t" + input[1] + "\t" + input[2]);
+    }
+}
+
+class DeleteCommand implements Command{
+    @Override
+    public void execute(String[] input) {
+        FileUtil.writeToFile(getTime() + "\tDelete\t" + input[1]);
     }
 }
 
@@ -87,19 +127,26 @@ class TaskManager {
     private Map<CommandType, Command> commandMap = new HashMap<>(); // injected in, or obtained from a factory
     
     private TaskManager() {
+        commandMap.put(CommandType.START, new StartCommand());
+        commandMap.put(CommandType.STOP, new StopCommand());
+        commandMap.put(CommandType.DESCRIBE, new DescribeCommand());
+        commandMap.put(CommandType.SIZE, new SizeCommand());
+        commandMap.put(CommandType.RENAME, new RenameCommand());
+        commandMap.put(CommandType.DELETE, new DeleteCommand());
     }
 
     public void run(String[] input) {
-        commandMap.put(CommandType.START, new StartCommand());
         CommandType action = CommandType.valueOf(input[0].toUpperCase());
         Command command = commandMap.get(action);
         command.execute(input);
     }
 
+    /*
     private String[] splitInput(String input) {
         String[] split = input.split("\\s+");
         return split;
     }
+    */
 
     public static TaskManager getInstance() {
         if(instance == null) {

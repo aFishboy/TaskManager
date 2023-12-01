@@ -2,5 +2,18 @@ new log entry
 2023-11-29 17:45
 2023-11-29 17:45
 2023-11-29 17:49:36.355
-2023-11-29 17:58:19.822Start
+2023-11-29 17:58:19.822 Start
 2023-11-29 17:58:29.847	Start
+2023-11-30 23:44:13.398	Start
+2023-11-30 23:49:54.953	Stop
+2023-12-01 00:00:34.151	Description	"Test description"
+2023-12-01 00:07:22.402	DescribeFoo	"Test description"
+2023-12-01 00:07:53.944	Describe	Foo	"Test description"
+2023-12-01 00:08:20.532	Describe	Foo	"Test description"	XL
+2023-12-01 00:09:36.862	Start	Foo
+2023-12-01 00:09:45.237	Stop	Foo
+2023-12-01 00:10:15.343	Rename	Foo	"Fi"
+2023-12-01 00:10:40.141	Rename	FooFi
+2023-12-01 00:10:58.471	Rename	Foo	Fi
+2023-12-01 00:12:36.730	Delete	Foo
+2023-12-01 00:13:22.155	Size	Foo	XL
