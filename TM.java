@@ -23,33 +23,24 @@ public class TM {
 }
 
 enum CommandType{
-    START, STOP, DESCRIBE, SUMMARY, SIZE, RENAME, DELETE;
+    START, STOP, DESCRIBE, SUMMARY, SIZE, RENAME, DELETE, HELP;
 }
 
 interface Command {
     public void execute(String[] input);
-
-    // I feel like we don't need to necessarily have this method in the interface
-    // and the formatting doesn't have to be the same as Posnett's, we can just use the default LocalDateTime format
-    // especially in the case of the summary command, where we don't log it to the file
-    default String getTime(){
-        LocalDateTime currentTime = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
-        return currentTime.format(formatter);
-    }
 }
 
 class StartCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(LocalDateTime.now() + "\tStart\t" + input[1]);
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStart\t" + input[1]);
     }
 }
 
 class  StopCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(LocalDateTime.now() + "\tStop\t" + input[1]);
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStop\t" + input[1]);
     }
 }
 
@@ -69,29 +60,37 @@ class DescribeCommand implements Command{
                 System.out.println("Invalid size, ignoring... Please enter a valid size next time (S, M, L, XL)");
             }
         }
-        FileUtil.writeToFile(LocalDateTime.now() + "\tDescribe\t" + log);
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tDescribe\t" + log);
     }
 }
 
 class SizeCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(LocalDateTime.now() + "\tSize\t" + input[1] + "\t" + input[2]);
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tSize\t" + input[1] + "\t" + input[2]);
     }
 }
 
 class RenameCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(LocalDateTime.now() + "\tRename\t" + input[1] + "\t" + input[2]);
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tRename\t" + input[1] + "\t" + input[2]);
     }
 }
 
 class DeleteCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(LocalDateTime.now() + "\tDelete\t" + input[1]);
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tDelete\t" + input[1]);
     }
+}
+
+class HelpCommand implements Command{
+    @Override
+    public void execute(String[] input) {
+        System.out.println("List of COMMMMMMMMMMMMMMMMMMAAAABABABAAABABANANANANANNDDDSS");
+    }
+
 }
 
 class FileUtil {
@@ -131,15 +130,10 @@ class FileUtil {
 // Task Manager Class (Singleton)
 class TaskManager {
     private static TaskManager instance;
-    private Map<CommandType, Command> commandMap = new HashMap<>(); // injected in, or obtained from a factory
+    private Map<CommandType, Command> commandMap; // obtained from a factory
     
     private TaskManager() {
-        commandMap.put(CommandType.START, new StartCommand());
-        commandMap.put(CommandType.STOP, new StopCommand());
-        commandMap.put(CommandType.DESCRIBE, new DescribeCommand());
-        commandMap.put(CommandType.SIZE, new SizeCommand());
-        commandMap.put(CommandType.RENAME, new RenameCommand());
-        commandMap.put(CommandType.DELETE, new DeleteCommand());
+        this.commandMap = CommandMapFactory.createCommandMap();
     }
 
     public void run(String[] input) {
@@ -149,7 +143,12 @@ class TaskManager {
     }
 
     public boolean isProperCommand(String[] input) {
-       return input.length >= 2 && input.length <= 4;
+        boolean isProper = input.length >= 1 && input.length <= 4;
+        if (!isProper){
+            System.out.println("Usage: java TM.java <command> <data>\n" +
+                               "For a list of commands, type help NEEEEEED TOOOOOOOO ADDDDDDDD");
+        }
+        return isProper;
     }
     
     public static TaskManager getInstance() {
@@ -217,4 +216,18 @@ class TStateNew implements TState {
     //     // TODO Auto-generated method stub
     //     throw new UnsupportedOperationException("Unimplemented method 'execute'");
     // }
+}
+
+class CommandMapFactory {
+    public static Map<CommandType, Command> createCommandMap() {
+        Map<CommandType, Command> commandMap = new HashMap<>();
+        commandMap.put(CommandType.START, new StartCommand());
+        commandMap.put(CommandType.STOP, new StopCommand());
+        commandMap.put(CommandType.DESCRIBE, new DescribeCommand());
+        commandMap.put(CommandType.SIZE, new SizeCommand());
+        commandMap.put(CommandType.RENAME, new RenameCommand());
+        commandMap.put(CommandType.DELETE, new DeleteCommand());
+        commandMap.put(CommandType.HELP, new HelpCommand());
+        return commandMap;
+    }
 }

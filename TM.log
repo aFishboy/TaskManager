@@ -23,3 +23,6 @@ new log entry
 2023-12-01T13:07:35.678884700	Describe	foo	"hello world"	XL
 2023-12-01T13:09:45.383290400	Describe	foo	"hello world"
 2023-12-01T13:22:51.267741400	Describe	foo	"hello worlds"
+2023-12-03T11:54:52.225118100	Start	plop
+2023-12-03T11:58:19	Start	plop
+2023-12-03T13:25:39	Start	plop
