@@ -26,3 +26,8 @@ new log entry
 2023-12-03T11:54:52.225118100	Start	plop
 2023-12-03T11:58:19	Start	plop
 2023-12-03T13:25:39	Start	plop
+2023-12-03T16:26:27	Describe	Foo	"thisissssss"
+2023-12-03T16:30:35	Describe	Foo	"test"
+2023-12-03T16:30:57	Describe	Foo	"test this is stes s"
+2023-12-03T16:32:10	Describe	Foo	"test this is stes s"
+2023-12-03T17:34:32	Start	S

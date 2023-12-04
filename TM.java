@@ -2,6 +2,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.io.FileOutputStream;
@@ -16,9 +17,12 @@ public class TM {
         // get input
         TaskManager tm = TaskManager.getInstance();
         // run time manager
-        if(tm.isProperCommand(args)){
+        if(args.length >= 1 && args.length <= 4){
             tm.run(args);
-        }   
+        }else{
+            System.out.println("Usage: java TM <command> <data>\n" +
+                               "For a list of commands, type help");
+        }
     }
 }
 
@@ -27,20 +31,53 @@ enum CommandType{
 }
 
 interface Command {
-    public void execute(String[] input);
+    void execute(String[] input);
+
+    // we can use this to check individually for each command if they have proper
+    // amount of args and we can later check if it is valid ie not having two 
+    // starts going at the same time
+    boolean isProperCommand(String[] input);
 }
 
 class StartCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStart\t" + input[1]);
+        if (isProperCommand(input))
+            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStart\t" + input[1]);
+    }
+
+    @Override
+    public boolean isProperCommand(String[] input) {
+        if (input.length != 2){
+            System.out.println("Usage: java TM.java start <task name>\n" +
+                               "For a list of commands, type help");
+            return false;
+        }
+        if (input[1].equals("S") || input[1].equals("M") ||
+                     input[1].equals("L") || input[1].equals("XL")){
+            System.out.println("Error: Sizes [S, M, L, XL] " + 
+                               "cannot be used as names");
+            return false;
+        }
+        return true;
     }
 }
 
 class  StopCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStop\t" + input[1]);
+        if (isProperCommand(input))
+            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStop\t" + input[1]);
+    }
+
+    @Override
+    public boolean isProperCommand(String[] input) {
+        boolean isProper = input.length == 2;
+        if (!isProper){
+            System.out.println("Usage: java TM.java stop <task name>\n" +
+                               "For a list of commands, type help");
+        }
+        return isProper;
     }
 }
 
@@ -62,33 +99,115 @@ class DescribeCommand implements Command{
         }
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tDescribe\t" + log);
     }
+
+    @Override
+    public boolean isProperCommand(String[] input) {
+        boolean isProper = input.length >= 1 && input.length <= 4;
+        if (!isProper){
+            System.out.println("Usage: java TM.java describe <task name> " + 
+                               "<description> [{S|M|L|XL}]\n" +
+                               "For a list of commands, type help ");
+        }
+        return isProper;
+    }
 }
 
 class SizeCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tSize\t" + input[1] + "\t" + input[2]);
+        if (isProperCommand(input))
+            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tSize\t" + input[1] + "\t" + input[2]);
+    }
+
+    @Override
+    public boolean isProperCommand(String[] input) {
+        boolean isProper = input.length == 3;
+        if (!isProper){
+            System.out.println("Usage: java TM.java size <task  name> " +
+                               "{S|M|L|XL}\nFor a list of commands, type help");
+        }
+        return isProper;
     }
 }
 
 class RenameCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tRename\t" + input[1] + "\t" + input[2]);
+        if (isProperCommand(input))
+            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tRename\t" + input[1] + "\t" + input[2]);
+    }
+
+    @Override
+    public boolean isProperCommand(String[] input) {
+        boolean isProper = input.length == 2;
+        if (!isProper){
+            System.out.println("Usage: java TM.java rename <old task name>" + 
+                               " <new task name>\n" +
+                               "For a list of commands, type help");
+        }
+        return isProper;
     }
 }
 
 class DeleteCommand implements Command{
     @Override
     public void execute(String[] input) {
-        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tDelete\t" + input[1]);
+        if (isProperCommand(input))
+            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tDelete\t" + input[1]);
+    }
+
+    @Override
+    public boolean isProperCommand(String[] input) {
+        boolean isProper = input.length == 1;
+        if (!isProper){
+            System.out.println("Usage: java TM.java delete <task name> \n" +
+                               "For a list of commands, type help");
+        }
+        return isProper;
     }
 }
 
 class HelpCommand implements Command{
     @Override
     public void execute(String[] input) {
-        System.out.println("List of COMMMMMMMMMMMMMMMMMMAAAABABABAAABABANANANANANNDDDSS");
+        if (isProperCommand(input))
+            System.out.println("List of COMMMMMMMMMMMMMMMMMMAAAABABABAAABABANANANANANNDDDSS");
+    }
+
+    @Override
+    public boolean isProperCommand(String[] input) {
+        boolean isProper = input.length == 1 || input.length == 2;
+        if (!isProper){
+            System.out.println("Usage: java TM.java help\n");
+        }
+        return isProper;
+    }
+
+}
+
+class SummaryCommand implements Command{
+    @Override
+    public void execute(String[] input) {
+        if (!isProperCommand(input))
+            return;
+
+        
+
+        List<String> fileList = FileUtil.readFileAndStoreInList();
+        for (String element : fileList) {
+            System.out.println(element);
+        }
+    }
+
+    @Override
+    public boolean isProperCommand(String[] input) {
+        boolean isProper = input.length == 1;
+        if (!isProper){
+            System.out.println("Usage: java TM.java summary " + 
+                               "[<task name> | {S|M|L|XL}]\n" +
+                               "For a list of commands, type help");
+        }
+        return isProper;
     }
 
 }
@@ -107,15 +226,15 @@ class FileUtil {
         }
     }
 
-    public static String readFromFile() {
-        StringBuilder content = new StringBuilder();
+    public static List<String> readFileAndStoreInList() {
+        List<String> lines = new ArrayList<>();
         try {
             File file = new File(LOGFILE); // Specify the file
             Scanner scanner = new Scanner(file);
 
             while (scanner.hasNext()) {
                 String line = scanner.nextLine();
-                content.append(line).append("\n");
+                lines.add(line);
                 // Process the line as needed
             }
             scanner.close();
@@ -123,7 +242,7 @@ class FileUtil {
             System.out.println("An error occurred while reading from the file: " + LOGFILE);
             e.printStackTrace();
         }
-        return content.toString();
+        return lines;
     }
 }
 
@@ -131,6 +250,8 @@ class FileUtil {
 class TaskManager {
     private static TaskManager instance;
     private Map<CommandType, Command> commandMap; // obtained from a factory
+    private List<Task> taskList;
+    private Task currentTask;
     
     private TaskManager() {
         this.commandMap = CommandMapFactory.createCommandMap();
@@ -140,15 +261,6 @@ class TaskManager {
         CommandType action = CommandType.valueOf(input[0].toUpperCase());
         Command command = commandMap.get(action);
         command.execute(input);
-    }
-
-    public boolean isProperCommand(String[] input) {
-        boolean isProper = input.length >= 1 && input.length <= 4;
-        if (!isProper){
-            System.out.println("Usage: java TM.java <command> <data>\n" +
-                               "For a list of commands, type help NEEEEEED TOOOOOOOO ADDDDDDDD");
-        }
-        return isProper;
     }
     
     public static TaskManager getInstance() {
@@ -228,6 +340,8 @@ class CommandMapFactory {
         commandMap.put(CommandType.RENAME, new RenameCommand());
         commandMap.put(CommandType.DELETE, new DeleteCommand());
         commandMap.put(CommandType.HELP, new HelpCommand());
+        commandMap.put(CommandType.SUMMARY, new SummaryCommand());
+
         return commandMap;
     }
 }
