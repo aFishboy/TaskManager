@@ -90,6 +90,7 @@ class DescribeCommand implements Command{
         if (input.length == 4) {
             // check if size is correct format (S, M, L, XL), if not, ignore size since it is optional
             // should discuss if this should ignore the error (warn the user) or throw an exception
+            input[3] = input[3].toUpperCase();
             if (Arrays.asList(sizes).contains(input[3])) {
                 log += "\t" + input[3];
             }
@@ -113,7 +114,7 @@ class DescribeCommand implements Command{
 }
 
 class SizeCommand implements Command{
-    @Override
+        @Override
     public void execute(String[] input) {
         if (isProperCommand(input))
             FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tSize\t" + input[1] + "\t" + input[2]);
@@ -139,7 +140,7 @@ class RenameCommand implements Command{
 
     @Override
     public boolean isProperCommand(String[] input) {
-        boolean isProper = input.length == 2;
+        boolean isProper = input.length == 3;
         if (!isProper){
             System.out.println("Usage: java TM.java rename <old task name>" + 
                                " <new task name>\n" +
@@ -167,23 +168,26 @@ class DeleteCommand implements Command{
     }
 }
 
-class HelpCommand implements Command{
+class HelpCommand implements Command {
+    private static final String HELP_MESSAGE = "List of COMMMMMMMMMMMMMMMMMMAAAABABABAAABABANANANANANNDDDSS";
+
     @Override
     public void execute(String[] input) {
-        if (isProperCommand(input))
-            System.out.println("List of COMMMMMMMMMMMMMMMMMMAAAABABABAAABABANANANANANNDDDSS");
+        if (isProperCommand(input)) {
+            System.out.println(HELP_MESSAGE);
+        }
     }
-
+   
     @Override
     public boolean isProperCommand(String[] input) {
         boolean isProper = input.length == 1 || input.length == 2;
-        if (!isProper){
+        if (!isProper) {
             System.out.println("Usage: java TM.java help\n");
         }
         return isProper;
     }
-
 }
+
 
 class SummaryCommand implements Command{
     @Override
@@ -193,10 +197,7 @@ class SummaryCommand implements Command{
 
         
 
-        List<String> fileList = FileUtil.readFileAndStoreInList();
-        for (String element : fileList) {
-            System.out.println(element);
-        }
+        
     }
 
     @Override
@@ -226,7 +227,7 @@ class FileUtil {
         }
     }
 
-    public static List<String> readFileAndStoreInList() {
+    public static List<String> readLogAndStoreInList() {
         List<String> lines = new ArrayList<>();
         try {
             File file = new File(LOGFILE); // Specify the file
@@ -234,7 +235,7 @@ class FileUtil {
 
             while (scanner.hasNext()) {
                 String line = scanner.nextLine();
-                lines.add(line);
+                lines.add(line.toUpperCase());
                 // Process the line as needed
             }
             scanner.close();
@@ -251,12 +252,14 @@ class TaskManager {
     private static TaskManager instance;
     private Map<CommandType, Command> commandMap; // obtained from a factory
     private List<Task> taskList;
-    private Task currentTask;
+    private Task currentTask; // probably change to a string
     
     private TaskManager() {
         this.commandMap = CommandMapFactory.createCommandMap();
+       // taskList = createTaskList();
     }
 
+    // probably change this function name to be more descriptive
     public void run(String[] input) {
         CommandType action = CommandType.valueOf(input[0].toUpperCase());
         Command command = commandMap.get(action);
@@ -269,6 +272,21 @@ class TaskManager {
         }
         return instance;
     }
+
+    // private List<Task> createTaskList(){
+    //     List<String> logList = FileUtil.readLogAndStoreInList();
+    //     for (String logLine : logList) {
+    //         switch (CommandType.valueOf(input[0].toUpperCase()) {
+    //             case value:
+                    
+    //                 break;
+            
+    //             default:
+    //                 break;
+    //         }
+    //     }
+    //     return taskList;
+    // }
 }
 
 // Task Class

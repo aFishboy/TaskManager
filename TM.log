@@ -1,11 +1,3 @@
-new log entry
-2023-11-29 17:45
-2023-11-29 17:45
-2023-11-29 17:49:36.355
-2023-11-29 17:58:19.822 Start
-2023-11-29 17:58:29.847	Start
-2023-11-30 23:44:13.398	Start
-2023-11-30 23:49:54.953	Stop
 2023-12-01 00:00:34.151	Description	"Test description"
 2023-12-01 00:07:22.402	DescribeFoo	"Test description"
 2023-12-01 00:07:53.944	Describe	Foo	"Test description"
@@ -14,16 +6,8 @@ new log entry
 2023-12-01 00:09:45.237	Stop	Foo
 2023-12-01 00:10:15.343	Rename	Foo	"Fi"
 2023-12-01 00:10:40.141	Rename	FooFi
-2023-12-01 00:10:58.471	Rename	Foo	Fi
 2023-12-01 00:12:36.730	Delete	Foo
 2023-12-01 00:13:22.155	Size	Foo	XL
-2023-12-01T12:40:58.144201600	Start	FOO
-2023-12-01T12:55:45.854513400	Start	FOO
-2023-12-01T13:07:14.683226700	Describe	foo	"hello world"
-2023-12-01T13:07:35.678884700	Describe	foo	"hello world"	XL
-2023-12-01T13:09:45.383290400	Describe	foo	"hello world"
-2023-12-01T13:22:51.267741400	Describe	foo	"hello worlds"
-2023-12-03T11:54:52.225118100	Start	plop
 2023-12-03T11:58:19	Start	plop
 2023-12-03T13:25:39	Start	plop
 2023-12-03T16:26:27	Describe	Foo	"thisissssss"
@@ -31,3 +15,16 @@ new log entry
 2023-12-03T16:30:57	Describe	Foo	"test this is stes s"
 2023-12-03T16:32:10	Describe	Foo	"test this is stes s"
 2023-12-03T17:34:32	Start	S
+2023-12-04T15:30:02	Start	bar
+2023-12-04T15:30:13	Stop	bar
+2023-12-04T15:30:24	Start	bar
+2023-12-04T15:30:26	Stop	bar
+2023-12-04T15:35:36	Start	bar
+2023-12-04T15:51:50	Describe	foo	"hello world"
+2023-12-04T15:52:12	Describe	foo	"hello world"
+2023-12-04T15:52:20	Describe	foo	"hello world"	XL
+2023-12-04T15:54:57	Describe	foo	"hello world"	XL
+2023-12-04T15:55:43	Describe	foo	"new description test"
+2023-12-04T15:56:09	Start	plop
+2023-12-04T15:56:26	Start	foo
+2023-12-04T15:57:24	Rename	foo	fi
