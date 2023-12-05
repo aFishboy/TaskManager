@@ -117,12 +117,12 @@ class SizeCommand implements Command{
         @Override
     public void execute(String[] input) {
         if (isProperCommand(input))
-            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tSize\t" + input[1] + "\t" + input[2]);
+            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tSize\t" + input[1] + "\t" + input[2].toUpperCase());
     }
 
     @Override
     public boolean isProperCommand(String[] input) {
-        boolean isProper = input.length == 3;
+        boolean isProper = input.length == 3; // need to also check it is proper size
         if (!isProper){
             System.out.println("Usage: java TM.java size <task  name> " +
                                "{S|M|L|XL}\nFor a list of commands, type help");

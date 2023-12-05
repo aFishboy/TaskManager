@@ -4,8 +4,6 @@
 2023-12-01 00:08:20.532	Describe	Foo	"Test description"	XL
 2023-12-01 00:09:36.862	Start	Foo
 2023-12-01 00:09:45.237	Stop	Foo
-2023-12-01 00:10:15.343	Rename	Foo	"Fi"
-2023-12-01 00:10:40.141	Rename	FooFi
 2023-12-01 00:12:36.730	Delete	Foo
 2023-12-01 00:13:22.155	Size	Foo	XL
 2023-12-03T11:58:19	Start	plop
@@ -28,3 +26,4 @@
 2023-12-04T15:56:09	Start	plop
 2023-12-04T15:56:26	Start	foo
 2023-12-04T15:57:24	Rename	foo	fi
+2023-12-04T15:59:58	Size	foo	S
