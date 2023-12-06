@@ -44,7 +44,7 @@ interface Command {
     boolean isProperCommand(String[] input);
 
     // we can use this to parse the line and store it in the task list
-    Task parseLine(String[] input, Task existingTask);
+    Task parseLine(String[] input, Task task);
 }
 
 class StartCommand implements Command{
@@ -70,16 +70,16 @@ class StartCommand implements Command{
         return true;
     }
 
-    public Task parseLine(String[] logLine, Task existingTask) throws IllegalStateException {
+    public Task parseLine(String[] logLine, Task task) throws IllegalStateException {
         LocalDateTime timeStamp = LocalDateTime.parse(logLine[0]);
         String taskName = logLine[2];
         
-        if (existingTask != null) {
-            if (existingTask.isRunning()){
-                throw new IllegalStateException("Task " + existingTask.getTaskName() + " is already running");
+        if (task != null) {
+            if (task.isRunning()){
+                throw new IllegalStateException("Task " + task.getTaskName() + " is already running");
             }
-            existingTask.updateStart(timeStamp);
-            return existingTask;
+            task.updateStart(timeStamp);
+            return task;
         } else {
             Task newTask = new Task(taskName);
             newTask.setStart(timeStamp);
@@ -107,9 +107,13 @@ class  StopCommand implements Command{
     }
 
     @Override
-    public Task parseLine(String[] input, Task existingTask) {
-        // TODO Auto-generated method stub
-        //throw new UnsupportedOperationException("Unimplemented method 'parseLine'");
+    public Task parseLine(String[] logLine, Task task) {
+        LocalDateTime timeStamp = LocalDateTime.parse(logLine[0]);
+        if (task != null) {
+            task.updateStop(timeStamp);
+        }else{
+            throw new IllegalStateException("No existing task for STOP command at File Line ");
+        }
         return null;
     }
 
@@ -145,14 +149,27 @@ class DescribeCommand implements Command{
         }
         return isProper;
     }
-
     @Override
-    public Task parseLine(String[] input, Task existingTask) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'parseLine'");
+    public Task parseLine(String[] logLine, Task task) {
+        LocalDateTime timeStamp = LocalDateTime.parse(logLine[0]);
+        String taskName = logLine[2];
+        String description = logLine[3];
+        String size = null;
+        
+        if (logLine.length == 5){
+            size = logLine[4];
+        }
+        if (task != null) {
+            task.updateDescription(description, size);
+            return null;
+        }else{
+            Task newTask = new Task(taskName);
+            newTask.setDescription(description);
+            newTask.setSize(size);
+            return newTask;
+        }
     }
 }
-
 class SizeCommand implements Command{
         @Override
     public void execute(String[] input) {
@@ -171,9 +188,17 @@ class SizeCommand implements Command{
     }
 
     @Override
-    public Task parseLine(String[] input, Task existingTask) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'parseLine'");
+    public Task parseLine(String[] logLine, Task task) {
+        String taskName = logLine[2];
+        String taskSize = logLine[3];
+        if (task != null) {
+            task.setSize(taskSize);
+            return null;
+        } else {
+            Task newTask = new Task(taskName);
+            newTask.setSize(taskSize);
+            return newTask;
+        }
     }
 }
 
@@ -196,9 +221,13 @@ class RenameCommand implements Command{
     }
 
     @Override
-    public Task parseLine(String[] input, Task existingTask) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'parseLine'");
+    public Task parseLine(String[] logLine, Task task) {
+        if (task == null){
+            throw new IllegalStateException("Can't rename a task that does not exist");
+        }
+        String taskName = logLine[3];
+        task.setName(taskName);
+        return null;
     }
 }
 
@@ -211,7 +240,7 @@ class DeleteCommand implements Command{
 
     @Override
     public boolean isProperCommand(String[] input) {
-        boolean isProper = input.length == 1;
+        boolean isProper = input.length == 2;
         if (!isProper){
             System.out.println("Usage: java TM.java delete <task name> \n" +
                                "For a list of commands, type help");
@@ -220,9 +249,12 @@ class DeleteCommand implements Command{
     }
 
     @Override
-    public Task parseLine(String[] input, Task existingTask) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'parseLine'");
+    public Task parseLine(String[] logLine, Task existingTask) {
+        if (existingTask == null){
+            throw new IllegalStateException("Can't delete a task that does not exist");
+        }
+        existingTask.setName(null);
+        return null;
     }
 }
 
@@ -254,7 +286,7 @@ class HelpCommand implements Command {
     }
 
     @Override
-    public Task parseLine(String[] input, Task existingTask) {
+    public Task parseLine(String[] logLine, Task existingTask) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'parseLine'");
     }
@@ -280,9 +312,8 @@ class SummaryCommand implements Command{
     }
 
     @Override
-    public Task parseLine(String[] input, Task existingTask) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'parseLine'");
+    public Task parseLine(String[] logLine, Task existingTask) {
+        throw new IllegalStateException("Illegal Log Line Command Summary");
     }
 
 }
@@ -307,7 +338,9 @@ class FileUtil {
             Scanner scanner = new Scanner(file);
 
             while (scanner.hasNext()) {
-                String line = scanner.nextLine();
+                String line = scanner.nextLine().trim();
+                if (line.isEmpty())
+                    continue;
                 String[] lineArray = line.toUpperCase().split("\t"); // Split the line into an array
                 lines.add(lineArray);
                 // Process the line as needed
@@ -324,7 +357,7 @@ class FileUtil {
 class TaskManager {
     private static TaskManager instance;
     private Map<CommandType, Command> commandMap; // obtained from a factory
-    private List<Task> taskList;
+    private List<Task> taskList; // should change this to a map!!!!!!!!
     private Task currentTask; // probably change to a string
     
     private TaskManager() {
@@ -356,62 +389,30 @@ class TaskManager {
             String commandString = logLine[1];
             String taskName = logLine[2];
             Task existingTask = findTaskByName(taskList, taskName);
-
-            LocalDateTime timeStamp = LocalDateTime.parse(logLine[0]);
             
             CommandType action = getCommandType(commandString);
             Command command = commandMap.get(action);
             try{ 
                 if (existingTask == null){
-                        Task returnedTask = command.parseLine(logLine, existingTask); 
+                        Task returnedTask = command.parseLine(logLine, null); 
                         this.taskList.add(returnedTask);    
                 }
                 else {
-                    command.parseLine(logLine, existingTask); 
+                    command.parseLine(logLine, existingTask);
                 }
             } catch (IllegalStateException e){
-                System.out.println(e.getMessage());
+                System.err.println("Error: File Line " + lineNumber + ": " + e.getMessage());
                 System.exit(1);
             }
-            // try{
-            //     switch (getCommandType(commandString)) {
-            //         case STOP:
-            //             if (existingTask != null) {
-            //                 existingTask.updateStop(timeStamp);
-            //             }else{
-            //                 throw new IllegalStateException("No existing task for STOP command at File Line " + lineNumber);
-            //             }
-            //             break;
-            //         case DESCRIBE:
-            //             String description = logLine[3];
-            //             String size = null;
-            //             if (logLine.length == 5){
-            //                 size = logLine[4];
-            //             }
-            //             if (existingTask != null) {
-            //                 //existingTask.updateDescription(description, size);
-            //             }else{
-            //                 Task newTask = new Task(taskName, timeStamp, null, null, true);
-            //                 taskList.add(newTask);
-            //             }
-            //             break;
-            //         default:
-            //             // Code for other command types
-            //             break;
-            //     }
-            // } catch (Exception e) {
-            //     // Handle the exception
-            //     System.err.println("An error occurred: File Line " + lineNumber + ": "+ e.getMessage());
-            //     System.exit(1);
-            // }
-
         }
+        taskList.removeIf(element -> element.getTaskName() == null);
+        Arrays.asList(taskList).forEach(System.out::println);
         return taskList;
     }
 
     private Task findTaskByName(List<Task> taskList, String taskName) {
         for (Task task : taskList) {
-            if (task.getTaskName().equals(taskName)) {
+            if (task.getTaskName() != null && task.getTaskName().equals(taskName)) {
                 return task;
             }
         }
@@ -438,6 +439,16 @@ class Task {
         this.start = null;
         this.isRunning = false;
         this.totalTime = Duration.ZERO;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void updateDescription(String description, String size) {
+        this.description = description;
+        if (size != null)
+            this.size = size;
     }
 
     public boolean isRunning() {
