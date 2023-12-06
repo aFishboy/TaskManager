@@ -12,7 +12,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-
 public class TM {
     public static void main(String[] args) {
         // get input
@@ -32,7 +31,7 @@ enum CommandType{
 }
 
 interface Command {
-    void execute(String[] input);
+    void execute(String[] input, Map<String, Task> taskMap);
     // Maybe change to
     // Start plop 2023-12-05T13:00:00
     // Stop plop 2023-12-05T15:20:51
@@ -49,9 +48,14 @@ interface Command {
 
 class StartCommand implements Command{
     @Override
-    public void execute(String[] input) {
+    public void execute(String[] input, Map<String, Task> taskMap) {
+        String taskName = input[1];
+        boolean anyRunning = taskMap.values().stream()
+                            .anyMatch(task -> task != null && task.isRunning());
+        if (anyRunning)
+            throw new IllegalStateException("Cannot start a new task while another task is already running.");
         if (isProperCommand(input))
-            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStart\t" + input[1]);
+            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStart\t" + taskName);
     }
 
     @Override
@@ -76,7 +80,7 @@ class StartCommand implements Command{
         
         if (task != null) {
             if (task.isRunning()){
-                throw new IllegalStateException("Task " + task.getTaskName() + " is already running");
+                throw new IllegalStateException("Task " + taskName + " is already running");
             }
             task.updateStart(timeStamp);
             return task;
@@ -89,11 +93,16 @@ class StartCommand implements Command{
     }
 }
 
-class  StopCommand implements Command{
+class  StopCommand implements Command{    
     @Override
-    public void execute(String[] input) {
-        if (isProperCommand(input))
-            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStop\t" + input[1]);
+    public void execute(String[] input, Map<String, Task> taskMap) {
+        String taskName = input[1];
+        
+        if (taskMap.containsKey(taskName) && taskMap.get(taskName).isRunning() && isProperCommand(input)) {
+            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStop\t" + taskName);
+        } else {
+            throw new IllegalStateException("Invalid stop command for task " + taskName);
+        }
     }
 
     @Override
@@ -121,7 +130,7 @@ class  StopCommand implements Command{
 
 class DescribeCommand implements Command{
     @Override
-    public void execute(String[] input) {
+    public void execute(String[] input, Map<String, Task> taskMap) {
         String[] sizes = {"S", "M", "L", "XL"};
         String log = input[1] + "\t\"" + input[2] + "\"";
 
@@ -172,7 +181,7 @@ class DescribeCommand implements Command{
 }
 class SizeCommand implements Command{
         @Override
-    public void execute(String[] input) {
+    public void execute(String[] input, Map<String, Task> taskMap) {
         if (isProperCommand(input))
             FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tSize\t" + input[1] + "\t" + input[2].toUpperCase());
     }
@@ -204,7 +213,7 @@ class SizeCommand implements Command{
 
 class RenameCommand implements Command{
     @Override
-    public void execute(String[] input) {
+    public void execute(String[] input, Map<String, Task> taskMap) {
         if (isProperCommand(input))
             FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tRename\t" + input[1] + "\t" + input[2]);
     }
@@ -233,7 +242,7 @@ class RenameCommand implements Command{
 
 class DeleteCommand implements Command{
     @Override
-    public void execute(String[] input) {
+    public void execute(String[] input, Map<String, Task> taskMap) {
         if (isProperCommand(input))
             FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tDelete\t" + input[1]);
     }
@@ -259,18 +268,13 @@ class DeleteCommand implements Command{
 }
 
 class HelpCommand implements Command {
-    private static final String HELP_MESSAGE = "Usage: java TM.java <command>\n" +
-                                               "Commands:\n" +
-                                               "start <task name>\n" +
-                                               "stop <task name>\n" +
-                                               "describe <task name> <description> [{S|M|L|XL}]\n" +
-                                               "size <task name> {S|M|L|XL}\n" +
-                                               "rename <old task name> <new task name>\n" +
-                                               "delete <task name>\n" +
-                                               "summary [<task name> | {S|M|L|XL}]\n" +
-                                               "help\n";
+    private static final String HELP_MESSAGE = 
+        "Usage: java TM.java <command>\nCommands:\nstart <task name>\n" +
+        "stop <task name>\ndescribe <task name> <description> [{S|M|L|XL}]\n" +
+        "size <task name> {S|M|L|XL}\nrename <old task name> <new task name>\n"+
+        "delete <task name>\nsummary [<task name> | {S|M|L|XL}]\nhelp\n";
     @Override
-    public void execute(String[] input) {
+    public void execute(String[] input, Map<String, Task> taskMap) {
         if (isProperCommand(input)) {
             System.out.println(HELP_MESSAGE);
         }
@@ -287,15 +291,14 @@ class HelpCommand implements Command {
 
     @Override
     public Task parseLine(String[] logLine, Task existingTask) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'parseLine'");
+        throw new IllegalStateException("Illegal Log Line Command Help");
+
     }
 }
 
-
 class SummaryCommand implements Command{
     @Override
-    public void execute(String[] input) {
+    public void execute(String[] input, Map<String, Task> taskMap) {
         if (!isProperCommand(input))
             return;   
     }
@@ -315,7 +318,6 @@ class SummaryCommand implements Command{
     public Task parseLine(String[] logLine, Task existingTask) {
         throw new IllegalStateException("Illegal Log Line Command Summary");
     }
-
 }
 
 class FileUtil {
@@ -357,7 +359,6 @@ class FileUtil {
 class TaskManager {
     private static TaskManager instance;
     private Map<CommandType, Command> commandMap; // obtained from a factory
-    private List<Task> taskList; // should change this to a map!!!!!!!!
     private Map<String, Task> taskMap;
     private Task currentTask; // probably change to a string
     
@@ -370,9 +371,15 @@ class TaskManager {
     public void run(String[] input) {
         CommandType action = getCommandType(input[0]);
         Command command = commandMap.get(action);
-        command.execute(input);
+        try{
+            command.execute(input, this.taskMap);
+        } catch (IllegalStateException e){
+                System.err.println(e.getMessage());
+                System.exit(1);
+
+        }
     }
-    
+
     public static TaskManager getInstance() {
         if(instance == null) {
             instance = new TaskManager();
@@ -407,20 +414,9 @@ class TaskManager {
             }
         }
         taskMap.values().removeIf(element -> element.getTaskName() == null);
-        //
-        Arrays.asList(taskMap).forEach(System.out::println);
+        /////////////////////////Arrays.asList(taskMap).forEach(System.out::println);
         return taskMap;
     }
-
-    private Task findTaskByName(List<Task> taskList, String taskName) {
-        for (Task task : taskList) {
-            if (task.getTaskName() != null && task.getTaskName().equals(taskName)) {
-                return task;
-            }
-        }
-        return null; // Task not found
-    }
-
     private CommandType getCommandType(String lineInput){
         return CommandType.valueOf(lineInput.toUpperCase());
     }
@@ -433,7 +429,7 @@ class Task {
     private LocalDateTime start;
     private Duration totalTime;
     private String size;
-    private boolean isRunning;
+    private boolean isRunning = false;
 
     // a lot of parameters. Probably refactor to have less.
     public Task(String name) {
@@ -491,7 +487,6 @@ class Task {
 
     public void updateStart(LocalDateTime timeStamp){
         if (isRunning){
-            System.out.println("Test\n");
             throw new IllegalStateException("Task " + this.name + " is already running");
         }
         this.start = timeStamp;
@@ -505,7 +500,7 @@ class Task {
         this.start = null;
         this.totalTime = this.totalTime.plus(duration);
         this.isRunning = false;
-        System.out.println("Total Time: " + formatTotalTime(this.totalTime));
+        ///////////////////////////////System.out.println("Total Time: " + formatTotalTime(this.totalTime));
     }
 
     private static Duration calculateTimeDifference(LocalDateTime dateTime1, LocalDateTime dateTime2) {
@@ -535,7 +530,6 @@ class CommandMapFactory {
         commandMap.put(CommandType.DELETE, new DeleteCommand());
         commandMap.put(CommandType.HELP, new HelpCommand());
         commandMap.put(CommandType.SUMMARY, new SummaryCommand());
-
         return commandMap;
     }
 }
