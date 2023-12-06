@@ -358,11 +358,12 @@ class TaskManager {
     private static TaskManager instance;
     private Map<CommandType, Command> commandMap; // obtained from a factory
     private List<Task> taskList; // should change this to a map!!!!!!!!
+    private Map<String, Task> taskMap;
     private Task currentTask; // probably change to a string
     
     private TaskManager() {
         this.commandMap = CommandMapFactory.createCommandMap();
-        taskList = createTaskList();
+        this.taskMap = createTaskMap();
     }
 
     // probably change this function name to be more descriptive
@@ -379,8 +380,8 @@ class TaskManager {
         return instance;
     }
 
-    private List<Task> createTaskList(){
-        this.taskList = new ArrayList<>(); 
+    private Map<String, Task> createTaskMap(){
+        Map<String, Task> taskMap = new HashMap<>();
         List<String[]> logList = FileUtil.readLogAndStoreInList();
         int lineNumber = 0;
 
@@ -388,14 +389,14 @@ class TaskManager {
             lineNumber++;
             String commandString = logLine[1];
             String taskName = logLine[2];
-            Task existingTask = findTaskByName(taskList, taskName);
+            Task existingTask = taskMap.get(taskName);
             
             CommandType action = getCommandType(commandString);
             Command command = commandMap.get(action);
             try{ 
                 if (existingTask == null){
                         Task returnedTask = command.parseLine(logLine, null); 
-                        this.taskList.add(returnedTask);    
+                        taskMap.put(taskName, returnedTask);
                 }
                 else {
                     command.parseLine(logLine, existingTask);
@@ -405,9 +406,10 @@ class TaskManager {
                 System.exit(1);
             }
         }
-        taskList.removeIf(element -> element.getTaskName() == null);
-        Arrays.asList(taskList).forEach(System.out::println);
-        return taskList;
+        taskMap.values().removeIf(element -> element.getTaskName() == null);
+        //
+        Arrays.asList(taskMap).forEach(System.out::println);
+        return taskMap;
     }
 
     private Task findTaskByName(List<Task> taskList, String taskName) {
