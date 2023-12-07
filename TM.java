@@ -2,26 +2,21 @@ import java.util.Arrays;
 import java.util.Map;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.io.FileOutputStream;
+import java.util.stream.Collectors;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 public class TM {
     public static void main(String[] args) {
-        // get input
         TaskManager tm = TaskManager.getInstance();
-        // run time manager
         if(args.length >= 1 && args.length <= 4){
             tm.run(args);
         }else{
@@ -41,13 +36,7 @@ interface Command {
     // Start plop 2023-12-05T13:00:00
     // Stop plop 2023-12-05T15:20:51
     // Describe foo "new description"
-
-    // we can use this to check individually for each command if they have proper
-    // amount of args and we can later check if it is valid ie not having two 
-    // starts going at the same time
     void isProperCommand(String[] input);
-
-    // we can use this to parse the line and store it in the task list
     Task parseLine(String[] input, Task task);
 }
 
@@ -313,10 +302,36 @@ class SummaryCommand implements Command{
     private void createSummary(Map<String, Task> taskMap) {
         System.out.println("Summary:\n");
 
-        // Filter tasks based on the predicate
-        taskMap.values().stream()
+        List<Task> filteredTasks = taskMap.values().stream()
                 .filter(summaryPredicate)
-                .forEach(task -> System.out.println(task.getSummary(task)));
+                .collect(Collectors.toList());
+
+        filteredTasks.forEach(task -> System.out.println(task.getSummary(task)));
+
+        long totalSeconds = filteredTasks.stream()
+                .filter(task -> !task.getDuration().equals(Duration.ZERO))
+                .mapToLong(task -> task.getDuration().toSeconds())
+                .sum();
+
+        long count = filteredTasks.stream()
+                .filter(task -> !task.getDuration().equals(Duration.ZERO))
+                .count();
+        Duration avgDuration = Duration.ofSeconds(totalSeconds / count);
+
+        Duration minDuration = filteredTasks.stream()
+                .filter(task -> !task.getDuration().equals(Duration.ZERO))
+                .map(Task::getDuration)
+                .min(Duration::compareTo)
+                .orElse(Duration.ZERO);
+
+        Duration maxDuration = filteredTasks.stream()
+                .map(Task::getDuration)
+                .max(Duration::compareTo)
+                .orElse(Duration.ZERO);
+
+        System.out.println("Min Duration of Started Tasks:     \t" + DurationUtil.formatTotalTime(minDuration));
+        System.out.println("Max Duration of Started Tasks:     \t" + DurationUtil.formatTotalTime(maxDuration));
+        System.out.println("Average Duration of Started Tasks: \t" + DurationUtil.formatTotalTime(avgDuration));
     }
 
     @Override
@@ -375,7 +390,6 @@ class TaskManager {
     private static TaskManager instance;
     private Map<CommandType, Command> commandMap; // obtained from a factory
     private Map<String, Task> taskMap;
-    private Task currentTask; // probably change to a string
     
     private TaskManager() {
         this.commandMap = CommandMapFactory.createCommandMap();
@@ -440,7 +454,6 @@ class TaskManager {
             }
         }
         taskMap.values().removeIf(element -> element.getTaskName() == null);
-        /////////////////////////Arrays.asList(taskMap).forEach(System.out::println);
         return taskMap;
     }
     private CommandType getCommandType(String lineInput){
@@ -468,7 +481,7 @@ class Task {
     public String getSummary(Task task) {
         String summary = "Summary for Task  \t:\t " + this.getTaskName() +
                          "\nDescription     \t:\t " + this.description + 
-                         "\nTotal Time Spent\t:\t " + formatTotalTime(this.totalTime) + 
+                         "\nTotal Time Spent\t:\t " + DurationUtil.formatTotalTime(this.totalTime) + 
                          "\nTask Size       \t:\t " + this.getSize() + "\n";
         return summary;
     }
@@ -508,6 +521,10 @@ class Task {
         return this.name;
     }
 
+    public Duration getDuration(){
+        return this.totalTime;
+    }
+
     // start, stop, describe, size, rename, methods
 
     @Override
@@ -531,22 +548,22 @@ class Task {
         if (!isRunning){
             throw new IllegalStateException("Task " + this.name + " cannot stop since it has not started");
         }
-        Duration duration = calculateTimeDifference(this.start, timeStamp);
+        Duration duration = DurationUtil.calculateTimeDifference(this.start, timeStamp);
         this.start = null;
         this.totalTime = this.totalTime.plus(duration);
         //System.out.println(formatTotalTime(this.totalTime) + "\n");
         this.isRunning = false;
     }
 
-    private static Duration calculateTimeDifference(LocalDateTime dateTime1, LocalDateTime dateTime2) {
+    
+}
+
+class DurationUtil {
+    protected static Duration calculateTimeDifference(LocalDateTime dateTime1, LocalDateTime dateTime2) {
         return Duration.between(dateTime1, dateTime2);
     }
-    private LocalDateTime parseTimestamp(String timeStamp) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
-        return LocalDateTime.parse(timeStamp, formatter);
-    }
 
-    private String formatTotalTime(Duration duration){
+    protected static String formatTotalTime(Duration duration){
         long hours = duration.toHours();
         long minutes = duration.toMinutesPart();
         long seconds = duration.toSecondsPart();
