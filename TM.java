@@ -1,19 +1,8 @@
-import java.util.Arrays;
-import java.util.Map;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Scanner;
-import java.util.Set;
+import java.io.*;
+import java.time.*;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.time.Duration;
-import java.time.LocalDateTime;
 
 public class TM {
     public static void main(String[] args) throws IOException{
@@ -24,7 +13,7 @@ public class TM {
                 tm.run(args);
             }else{
                 System.out.println("Usage: java TM <command> <data>\n" +
-                                "For a list of commands, type help");
+                                    "For a list of commands, type help");
             }
         }
         catch (IllegalStateException e) {
@@ -66,12 +55,12 @@ class StartCommand implements Command{
     public void isProperCommand(String[] input) {
         if (input.length != 2){
             throw new IllegalStateException("Usage: java TM.java start <task name>\n" +
-                               "For a list of commands, type help");
+                                            "For a list of commands, type help");
         }
         Set<String> sizes = new HashSet<>(Arrays.asList("S", "M", "L", "XL"));
         if (sizes.contains(input[1].toUpperCase())) {
             throw new IllegalStateException("Error: Sizes [S, M, L, XL] " + 
-                               "cannot be used as names");
+                                            "cannot be used as names");
         }
     }
 
@@ -87,8 +76,7 @@ class StartCommand implements Command{
             return null;
         } else {
             Task newTask = new Task(taskName);
-            newTask.setStart(timeStamp);
-            newTask.setIsRunning();
+            newTask.updateStart(timeStamp);
             return newTask;
         }
     }
@@ -100,8 +88,10 @@ class StopCommand implements Command{
         String taskName = input[1].toUpperCase();
         isProperCommand(input);
         if (taskMap.containsKey(taskName) && taskMap.get(taskName).isRunning()) {
-            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStop\t" + taskName);
+            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
+                                "\tStop\t" + taskName);
         } else {
+            // need to check if task is running or not, or if it exists
             throw new IllegalStateException("Invalid stop command for task " + taskName);
         }
     }
@@ -111,7 +101,7 @@ class StopCommand implements Command{
         boolean isProper = input.length == 2;
         if (!isProper){
             throw new IllegalStateException("Usage: java TM.java stop <task name>\n" +
-                               "For a list of commands, type help");
+                                            "For a list of commands, type help");
         }
     }
 
@@ -120,12 +110,12 @@ class StopCommand implements Command{
         LocalDateTime timeStamp = LocalDateTime.parse(logLine[0]);
         if (task != null) {
             task.updateStop(timeStamp);
-        }else{
+        } else {
+            // todo: need to check if task is running or not, or if it exists
             throw new IllegalStateException("No existing task for STOP command at File Line ");
         }
         return null;
     }
-
 }
 
 class DescribeCommand implements Command {
@@ -150,8 +140,8 @@ class DescribeCommand implements Command {
     public void isProperCommand(String[] input) {
         if (input.length < 2 || input.length > 4) {
             throw new IllegalStateException("Usage: java TM.java describe <task name> " +
-                    "<description> [{S|M|L|XL}]\n" +
-                    "For a list of commands, type help ");
+                                            "<description> [{S|M|L|XL}]\n" +
+                                            "For a list of commands, type help ");
         }
     }
 
@@ -165,21 +155,21 @@ class DescribeCommand implements Command {
             size = logLine[4];
         }
         if (task != null) {
-            task.updateDescription(description, size);
+            task.updateTask(description, size);
             return null;
         } else {
             Task newTask = new Task(taskName);
-            newTask.setDescription(description);
-            newTask.setSize(size);
-            return newTask;
+            return newTask.updateTask(description, size);
         }
     }
 }
 class SizeCommand implements Command{
-        @Override
+    @Override
     public void execute(String[] input, Map<String, Task> taskMap) throws IOException{
         isProperCommand(input);
-        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tSize\t" + input[1] + "\t" + input[2].toUpperCase());
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
+                            "\tSize\t" + input[1] + "\t" + 
+                            input[2].toUpperCase());
     }
 
     @Override
@@ -187,7 +177,7 @@ class SizeCommand implements Command{
         boolean isProper = input.length == 3; // need to also check it is proper size
         if (!isProper){
             throw new IllegalStateException("Usage: java TM.java size <task  name> " +
-                               "{S|M|L|XL}\nFor a list of commands, type help");
+                                            "{S|M|L|XL}\nFor a list of commands, type help");
         }
     }
 
@@ -196,12 +186,11 @@ class SizeCommand implements Command{
         String taskName = logLine[2];
         String taskSize = logLine[3];
         if (task != null) {
-            task.setSize(taskSize);
+            task.updateTask(null, taskSize);
             return null;
         } else {
             Task newTask = new Task(taskName);
-            newTask.setSize(taskSize);
-            return newTask;
+            return newTask.updateTask(null, taskSize);
         }
     }
 }
@@ -244,7 +233,7 @@ class DeleteCommand implements Command{
         isProperCommand(input);
         if (!taskMap.containsKey(taskName))
             throw new IllegalStateException("Cannot rename nonexistent task");
-        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tDelete\t" + input[1]);
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tDelete\t" + taskName);
     }
 
     @Override
@@ -261,8 +250,7 @@ class DeleteCommand implements Command{
         if (existingTask == null){
             throw new IllegalStateException("Can't delete a task that does not exist");
         }
-        existingTask.setName(null);
-        return null;
+        return existingTask;
     }
 }
 
@@ -344,14 +332,13 @@ class SummaryCommand implements Command{
 
 // processes the summary of the tasks
 class SummaryProcessor {
-    //get current running task
+
     private static Task getCurrentRunningTask(List<Task> tasks) {
         return tasks.stream()
                 .filter(Task::isRunning)
                 .findFirst()
                 .orElse(null);
     }
-
 
     private static Duration calculateTotalTime(List<Task> tasks) {
         return tasks.stream()
@@ -381,9 +368,12 @@ class SummaryProcessor {
     public static void printSummary(List<Task> tasks) {
         System.out.println("Summary:\n");
 
-        System.out.println("Current Running Task: \t" + getCurrentRunningTask(tasks).getTaskName() + "\n");
-
-        tasks.forEach(task -> System.out.println(task.getSummary(task)));
+        if (getCurrentRunningTask(tasks) != null)
+        {
+            System.out.println("Current Running Task: \t" + getCurrentRunningTask(tasks).getTaskName() + "\n");
+        }
+        
+        tasks.forEach(task -> System.out.println(task.getSummary()));
 
         Duration minDuration = calculateMinTime(tasks);
         Duration maxDuration = calculateMaxTime(tasks);
@@ -436,20 +426,10 @@ class TaskManager {
     // probably change this function name to be more descriptive
     public void run(String[] input) throws IOException{
         String commandString = input[0];
-        if (!validateCommand(commandString)){
-            throw new IllegalStateException("Invalid command " + commandString + 
-                                            "\nFor a list of commands, type help");
-        }
+        validateCommand(commandString, "");
         CommandType action = CommandType.valueOf(commandString.toUpperCase());
         Command command = commandMap.get(action);
         command.execute(input, this.taskMap);
-    }
-
-    public static TaskManager getInstance() throws FileNotFoundException{
-        if(instance == null) {
-            instance = new TaskManager();
-        }
-        return instance;
     }
 
     private Map<String, Task> createTaskMap() throws FileNotFoundException{
@@ -460,12 +440,9 @@ class TaskManager {
         for (String logLine[] : logList) {
             lineNumber++;
             String commandString = logLine[1];
+            validateCommand(commandString, " at File Line " + lineNumber);
             String taskName = logLine[2];
             Task existingTask = taskMap.get(taskName);
-            if (!validateCommand(commandString)){
-                throw new IllegalArgumentException("Invalid command " + commandString + 
-                                                    " at File Line " + lineNumber);
-            }
             CommandType action = CommandType.valueOf(commandString.toUpperCase());
             Command command = commandMap.get(action);
 
@@ -484,19 +461,27 @@ class TaskManager {
         taskMap.values().removeIf(element -> element.getTaskName() == null);
         return taskMap;
     }
-    boolean validateCommand(String commandString){
-        return Arrays.stream(CommandType.values()).anyMatch(command -> command.name().equals(commandString.toUpperCase()));
+
+    private void validateCommand(String commandString, String errorSuffix){
+        if (!Arrays.stream(CommandType.values()).anyMatch(command -> command.name().equals(commandString.toUpperCase()))) {
+            throw new IllegalArgumentException("Invalid command " + commandString + errorSuffix);
+        }
+    }
+
+    public static TaskManager getInstance() throws FileNotFoundException{
+        if(instance == null) {
+            instance = new TaskManager();
+        }
+        return instance;
     }
 }
 
-// Task Class
 class Task {
     private String name, description, size;
     private LocalDateTime start;
     private Duration totalTime;
     private boolean isRunning;
 
-    // constructor
     public Task(String name) {
         this.name = name;
         this.start = null;
@@ -506,43 +491,45 @@ class Task {
         this.size = "N/A";
     }
 
-    public String getSummary(Task task) {
-        String summary = "Summary for Task  \t:\t " + this.getTaskName() +
-                         "\nDescription     \t:\t " + this.description + 
-                         "\nTotal Time Spent\t:\t " + DurationUtil.formatTotalTime(this.totalTime) + 
-                         "\nTask Size       \t:\t " + this.getSize() + "\n";
-        return summary;
+    public void setName(String newTaskName) {
+        this.name = newTaskName;
+    }
+
+    public Task updateTask(String description, String size) {
+        if (description != null)
+            this.description = description;
+        if (size != null)
+            this.size = size;
+        return this;
+    }
+
+    public void updateStart(LocalDateTime timeStamp) {
+        if (isRunning){
+            throw new IllegalStateException("Task " + this.name + " is already running");
+        }
+        this.start = timeStamp;
+        this.isRunning = true;
+    }
+
+    public void updateStop(LocalDateTime timeStamp) {
+        if (!isRunning){
+            throw new IllegalStateException("Task " + this.name + " cannot stop since it has not started");
+        }
+        Duration duration = Duration.between(this.start, timeStamp);
+        this.start = null;
+        this.totalTime = this.totalTime.plus(duration);
+        this.isRunning = false;
+    }
+
+    public String getSummary() {
+        return "Summary for Task  \t:\t " + this.name +
+                "\nDescription     \t:\t " + this.description + 
+                "\nTotal Time Spent\t:\t " + DurationUtil.formatTotalTime(this.totalTime) + 
+                "\nTask Size       \t:\t " + this.size + "\n";
     }
 
     public String getSize() {
         return this.size;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void updateDescription(String description, String size) {
-        this.description = description;
-        if (size != null)
-            this.size = size;
-    }
-
-    public boolean isRunning() {
-        return this.isRunning;
-    }
-
-    public void setIsRunning() {
-        this.isRunning = true;
-    }
-
-    // setters
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public void setStart(LocalDateTime timeStamp) {
-        this.start = timeStamp;
     }
 
     public String getTaskName() {
@@ -553,50 +540,20 @@ class Task {
         return this.totalTime;
     }
 
-    // start, stop, describe, size, rename, methods
+    public boolean isRunning() {
+        return this.isRunning;
+    }
 
-    @Override
     public String toString() {
         return "Task [name=" + name + ", description=" + description + ", start=" + start + ", totalTime=" + totalTime
                 + ", size=" + size + ", currentlyRunning=" + isRunning + "]";
     }
-
-    public void setSize(String size) {
-        this.size = size;
-    }
-
-    public void updateStart(LocalDateTime timeStamp){
-        if (isRunning){
-            throw new IllegalStateException("Task " + this.name + " is already running");
-        }
-        this.start = timeStamp;
-        isRunning = true;
-    }
-    public void updateStop(LocalDateTime timeStamp){
-        if (!isRunning){
-            throw new IllegalStateException("Task " + this.name + " cannot stop since it has not started");
-        }
-        Duration duration = DurationUtil.calculateTimeDifference(this.start, timeStamp);
-        this.start = null;
-        this.totalTime = this.totalTime.plus(duration);
-        //System.out.println(formatTotalTime(this.totalTime) + "\n");
-        this.isRunning = false;
-    }
-
-    
 }
 
-// maybe we don't need this class, just use durantion methods directly
 class DurationUtil {
-    protected static Duration calculateTimeDifference(LocalDateTime dateTime1, LocalDateTime dateTime2) {
-        return Duration.between(dateTime1, dateTime2);
-    }
-
     protected static String formatTotalTime(Duration duration){
-        long hours = duration.toHours();
-        long minutes = duration.toMinutesPart();
-        long seconds = duration.toSecondsPart();
-        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+        return String.format("%02d:%02d:%02d", duration.toHours(), 
+                            duration.toMinutesPart(), duration.toSecondsPart());
     }
 }
 
