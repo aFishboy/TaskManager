@@ -278,6 +278,7 @@ class SummaryCommand implements Command{
     private Map<String, Task> taskMap;
     private Predicate<Task> summaryPredicate;
     private static final String[] SIZES = {"S", "M", "L", "XL"};
+    private SummaryProcessor summaryProcessor = new SummaryProcessor();
 
     @Override
     public void execute(String[] input, Map<String, Task> taskMap){
@@ -298,7 +299,7 @@ class SummaryCommand implements Command{
                 .filter(summaryPredicate)
                 .collect(Collectors.toList());
 
-        SummaryProcessor.printSummary(filteredTasks);
+        summaryProcessor.printSummary(filteredTasks);
     }
 
     @Override
@@ -356,7 +357,7 @@ class SummaryProcessor {
                 .orElse(Duration.ZERO);
     }
 
-    public static void printSummary(List<Task> tasks) {
+    public void printSummary(List<Task> tasks) {
         System.out.println("Summary:\n");
 
         if (getCurrentRunningTask(tasks) != null)
