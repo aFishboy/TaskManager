@@ -1,6 +1,7 @@
 import java.util.Arrays;
 import java.util.Map;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,13 +16,22 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 public class TM {
-    public static void main(String[] args) {
-        TaskManager tm = TaskManager.getInstance();
-        if(args.length >= 1 && args.length <= 4){
-            tm.run(args);
-        }else{
-            System.out.println("Usage: java TM <command> <data>\n" +
-                               "For a list of commands, type help");
+    public static void main(String[] args) throws IOException{
+        TaskManager tm;
+        try {
+            if(args.length >= 1 && args.length <= 4){
+                tm = TaskManager.getInstance();
+                tm.run(args);
+            }else{
+                System.out.println("Usage: java TM <command> <data>\n" +
+                                "For a list of commands, type help");
+            }
+        }
+        catch (IllegalStateException e) {
+            System.out.println(e.getMessage());
+        }
+        catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
         }
     }
 }
@@ -31,7 +41,7 @@ enum CommandType{
 }
 
 interface Command {
-    void execute(String[] input, Map<String, Task> taskMap);
+    void execute(String[] input, Map<String, Task> taskMap) throws IOException;
     // Maybe change to
     // Start plop 2023-12-05T13:00:00
     // Stop plop 2023-12-05T15:20:51
@@ -42,7 +52,7 @@ interface Command {
 
 class StartCommand implements Command{
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException {
+    public void execute(String[] input, Map<String, Task> taskMap) throws IOException {
         String taskName = input[1].toUpperCase();
         boolean anyRunning = taskMap.values().stream()
                             .anyMatch(task -> task != null && task.isRunning());
@@ -65,7 +75,7 @@ class StartCommand implements Command{
         }
     }
 
-    public Task parseLine(String[] logLine, Task task) throws IllegalStateException {
+    public Task parseLine(String[] logLine, Task task){
         LocalDateTime timeStamp = LocalDateTime.parse(logLine[0]);
         String taskName = logLine[2];
         
@@ -86,7 +96,7 @@ class StartCommand implements Command{
 
 class StopCommand implements Command{    
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException {
+    public void execute(String[] input, Map<String, Task> taskMap) throws IOException {
         String taskName = input[1].toUpperCase();
         isProperCommand(input);
         if (taskMap.containsKey(taskName) && taskMap.get(taskName).isRunning()) {
@@ -120,7 +130,7 @@ class StopCommand implements Command{
 
 class DescribeCommand implements Command {
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException {
+    public void execute(String[] input, Map<String, Task> taskMap) throws IOException {
         final String[] SIZES = {"S", "M", "L", "XL"};
         isProperCommand(input);
         String log = input[1].toUpperCase() + "\t\"" + input[2] + "\"";
@@ -167,7 +177,7 @@ class DescribeCommand implements Command {
 }
 class SizeCommand implements Command{
         @Override
-    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException{
+    public void execute(String[] input, Map<String, Task> taskMap) throws IOException{
         isProperCommand(input);
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tSize\t" + input[1] + "\t" + input[2].toUpperCase());
     }
@@ -198,7 +208,7 @@ class SizeCommand implements Command{
 
 class RenameCommand implements Command{
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException{
+    public void execute(String[] input, Map<String, Task> taskMap) throws IOException{
         String taskName = input[1].toUpperCase();
         isProperCommand(input);
         if (!taskMap.containsKey(taskName))
@@ -229,7 +239,7 @@ class RenameCommand implements Command{
 
 class DeleteCommand implements Command{
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException{
+    public void execute(String[] input, Map<String, Task> taskMap) throws IOException{
         String taskName = input[1].toUpperCase();
         isProperCommand(input);
         if (!taskMap.containsKey(taskName))
@@ -259,11 +269,11 @@ class DeleteCommand implements Command{
 class HelpCommand implements Command {
     private static final String HELP_MESSAGE = 
         "Usage: java TM.java <command>\nCommands:\nstart <task name>\n" +
-        "stop <task name>\ndescribe <task name> <description> [{S|M|L|XL}]\n" +
+        "stop <task name>\ndescribe <task name> <\"description\"> [{S|M|L|XL}]\n" +
         "size <task name> {S|M|L|XL}\nrename <old task name> <new task name>\n"+
         "delete <task name>\nsummary [<task name> | {S|M|L|XL}]\nhelp\n";
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException{
+    public void execute(String[] input, Map<String, Task> taskMap){
         isProperCommand(input);
         System.out.println(HELP_MESSAGE);
     }
@@ -284,10 +294,13 @@ class HelpCommand implements Command {
 }
 
 class SummaryCommand implements Command{
+    private Map<String, Task> taskMap;
     private Predicate<Task> summaryPredicate;
+    private static final String[] SIZES = {"S", "M", "L", "XL"};
+
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException{
-        final String[] SIZES = {"S", "M", "L", "XL"};
+    public void execute(String[] input, Map<String, Task> taskMap){
+        this.taskMap = taskMap;
         isProperCommand(input);
         if (input.length == 1){
             this.summaryPredicate = task -> true;
@@ -300,38 +313,11 @@ class SummaryCommand implements Command{
     }
 
     private void createSummary(Map<String, Task> taskMap) {
-        System.out.println("Summary:\n");
-
         List<Task> filteredTasks = taskMap.values().stream()
                 .filter(summaryPredicate)
                 .collect(Collectors.toList());
 
-        filteredTasks.forEach(task -> System.out.println(task.getSummary(task)));
-
-        long totalSeconds = filteredTasks.stream()
-                .filter(task -> !task.getDuration().equals(Duration.ZERO))
-                .mapToLong(task -> task.getDuration().toSeconds())
-                .sum();
-
-        long count = filteredTasks.stream()
-                .filter(task -> !task.getDuration().equals(Duration.ZERO))
-                .count();
-        Duration avgDuration = Duration.ofSeconds(totalSeconds / count);
-
-        Duration minDuration = filteredTasks.stream()
-                .filter(task -> !task.getDuration().equals(Duration.ZERO))
-                .map(Task::getDuration)
-                .min(Duration::compareTo)
-                .orElse(Duration.ZERO);
-
-        Duration maxDuration = filteredTasks.stream()
-                .map(Task::getDuration)
-                .max(Duration::compareTo)
-                .orElse(Duration.ZERO);
-
-        System.out.println("Min Duration of Started Tasks:     \t" + DurationUtil.formatTotalTime(minDuration));
-        System.out.println("Max Duration of Started Tasks:     \t" + DurationUtil.formatTotalTime(maxDuration));
-        System.out.println("Average Duration of Started Tasks: \t" + DurationUtil.formatTotalTime(avgDuration));
+        SummaryProcessor.printSummary(filteredTasks);
     }
 
     @Override
@@ -339,8 +325,14 @@ class SummaryCommand implements Command{
         boolean isProper = input.length == 1 || input.length == 2;
         if (!isProper){
             throw new IllegalStateException("Usage: java TM.java summary " + 
-                               "[<task name> | {S|M|L|XL}]\n" +
-                               "For a list of commands, type help");
+                                            "[<task name> | {S|M|L|XL}]\n" +
+                                            "For a list of commands, type help");
+        }
+        else if (input.length == 2 &&
+                !Arrays.asList(SIZES).contains(input[1].toUpperCase()) && 
+                !taskMap.containsKey(input[1].toUpperCase())){
+                throw new IllegalStateException("Invalid size or task for summary command" + 
+                                                "\nFor a list of commands, type help");
         }
     }
 
@@ -350,37 +342,82 @@ class SummaryCommand implements Command{
     }
 }
 
+// processes the summary of the tasks
+class SummaryProcessor {
+    //get current running task
+    private static Task getCurrentRunningTask(List<Task> tasks) {
+        return tasks.stream()
+                .filter(Task::isRunning)
+                .findFirst()
+                .orElse(null);
+    }
+
+
+    private static Duration calculateTotalTime(List<Task> tasks) {
+        return tasks.stream()
+                .map(Task::getDuration)
+                .reduce(Duration.ZERO, Duration::plus);
+    }
+
+    private static Duration calculateAverageTime(List<Task> tasks) {
+        Duration totalTime = calculateTotalTime(tasks);
+        return totalTime.dividedBy(tasks.size());
+    }
+
+    private static Duration calculateMinTime(List<Task> tasks) {
+        return tasks.stream()
+                .map(Task::getDuration)
+                .min(Duration::compareTo)
+                .orElse(Duration.ZERO);
+    }
+
+    private static Duration calculateMaxTime(List<Task> tasks) {
+        return tasks.stream()
+                .map(Task::getDuration)
+                .max(Duration::compareTo)
+                .orElse(Duration.ZERO);
+    }
+
+    public static void printSummary(List<Task> tasks) {
+        System.out.println("Summary:\n");
+
+        System.out.println("Current Running Task: \t" + getCurrentRunningTask(tasks).getTaskName() + "\n");
+
+        tasks.forEach(task -> System.out.println(task.getSummary(task)));
+
+        Duration minDuration = calculateMinTime(tasks);
+        Duration maxDuration = calculateMaxTime(tasks);
+        Duration avgDuration = calculateAverageTime(tasks);
+
+        System.out.println("Min Duration of Started Tasks:     \t" + DurationUtil.formatTotalTime(minDuration));
+        System.out.println("Max Duration of Started Tasks:     \t" + DurationUtil.formatTotalTime(maxDuration));
+        System.out.println("Average Duration of Started Tasks: \t" + DurationUtil.formatTotalTime(avgDuration));
+    }
+}
+
 class FileUtil {
     private static final String LOGFILE = "TM.log";
 
-    public static void writeToFile(String content) {
-        try {
-            FileWriter writer = new FileWriter(LOGFILE, true);
-            writer.write(content + '\n');
-            writer.close();
-        } catch (IOException e) {
-            System.out.println("An error occurred while writing to the file: " + LOGFILE);
-        }
+    public static void writeToFile(String content) throws IOException {
+        FileWriter writer = new FileWriter(LOGFILE, true);
+        writer.write(content + '\n');
+        writer.close();
     }
 
-    public static List<String[]> readLogAndStoreInList() {
+    public static List<String[]> readLogAndStoreInList() throws FileNotFoundException {
         List<String[]> lines = new ArrayList<>();
-        try {
-            File file = new File(LOGFILE); // Specify the file
-            Scanner scanner = new Scanner(file);
+        File file = new File(LOGFILE); // Specify the file
+        Scanner scanner = new Scanner(file);
 
-            while (scanner.hasNext()) {
-                String line = scanner.nextLine().trim();
-                if (line.isEmpty())
-                    continue;
-                String[] lineArray = line.toUpperCase().split("\t"); // Split the line into an array
-                lines.add(lineArray);
-                // Process the line as needed
-            }
-            scanner.close();
-        } catch (IOException e) {
-            System.out.println("An error occurred while reading from the file: " + LOGFILE);
+        while (scanner.hasNext()) {
+            String line = scanner.nextLine().trim();
+            if (line.isEmpty())
+                continue;
+            String[] lineArray = line.toUpperCase().split("\t"); // Split the line into an array
+            lines.add(lineArray);
+            // Process the line as needed
         }
+        scanner.close();
         return lines;
     }
 }
@@ -391,40 +428,31 @@ class TaskManager {
     private Map<CommandType, Command> commandMap; // obtained from a factory
     private Map<String, Task> taskMap;
     
-    private TaskManager() {
+    private TaskManager() throws FileNotFoundException {
         this.commandMap = CommandMapFactory.createCommandMap();
         this.taskMap = createTaskMap();
     }
 
     // probably change this function name to be more descriptive
-    public void run(String[] input) {
-        try{
-            CommandType action = getCommandType(input[0]);
-            Command command = commandMap.get(action);
-            if (command != null) {
-                command.execute(input, this.taskMap);
-            } else {
-                // Handle the case where the command is not found
-                System.err.println("Command not found for action: " + action);
-                System.exit(1);
-            }
-        } catch (IllegalStateException e){
-            System.err.println(e.getMessage());
-            System.exit(1);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Invalid command type: " + input[0]);
-            System.exit(1);
+    public void run(String[] input) throws IOException{
+        String commandString = input[0];
+        if (!validateCommand(commandString)){
+            throw new IllegalStateException("Invalid command " + commandString + 
+                                            "\nFor a list of commands, type help");
         }
+        CommandType action = CommandType.valueOf(commandString.toUpperCase());
+        Command command = commandMap.get(action);
+        command.execute(input, this.taskMap);
     }
 
-    public static TaskManager getInstance() {
+    public static TaskManager getInstance() throws FileNotFoundException{
         if(instance == null) {
             instance = new TaskManager();
         }
         return instance;
     }
 
-    private Map<String, Task> createTaskMap(){
+    private Map<String, Task> createTaskMap() throws FileNotFoundException{
         Map<String, Task> taskMap = new HashMap<>();
         List<String[]> logList = FileUtil.readLogAndStoreInList();
         int lineNumber = 0;
@@ -434,48 +462,48 @@ class TaskManager {
             String commandString = logLine[1];
             String taskName = logLine[2];
             Task existingTask = taskMap.get(taskName);
-            CommandType action = getCommandType(commandString);
+            if (!validateCommand(commandString)){
+                throw new IllegalArgumentException("Invalid command " + commandString + 
+                                                    " at File Line " + lineNumber);
+            }
+            CommandType action = CommandType.valueOf(commandString.toUpperCase());
             Command command = commandMap.get(action);
-            try{ 
-                if (existingTask == null){
-                        Task returnedTask = command.parseLine(logLine, null); 
-                        taskMap.put(taskName, returnedTask);
+
+            if (existingTask == null){
+                    Task returnedTask = command.parseLine(logLine, null); 
+                    taskMap.put(taskName, returnedTask);
+            }
+            else {
+                Task returnedTask = command.parseLine(logLine, existingTask);
+                if (returnedTask != null){
+                    taskMap.put(returnedTask.getTaskName(), returnedTask);
+                    taskMap.remove(taskName);
                 }
-                else {
-                    Task returnedTask = command.parseLine(logLine, existingTask);
-                    if (returnedTask != null){
-                        taskMap.put(returnedTask.getTaskName(), returnedTask);
-                        taskMap.remove(taskName);
-                    }
-                }
-            } catch (IllegalStateException e){
-                System.err.println("Error: File Line " + lineNumber + ": " + e.getMessage());
-                System.exit(1);
             }
         }
         taskMap.values().removeIf(element -> element.getTaskName() == null);
         return taskMap;
     }
-    private CommandType getCommandType(String lineInput){
-        return CommandType.valueOf(lineInput.toUpperCase());
+    boolean validateCommand(String commandString){
+        return Arrays.stream(CommandType.values()).anyMatch(command -> command.name().equals(commandString.toUpperCase()));
     }
 }
 
 // Task Class
 class Task {
-    private String name;
-    private String description = "N/A";
+    private String name, description, size;
     private LocalDateTime start;
     private Duration totalTime;
-    private String size = "N/A";
-    private boolean isRunning = false;
+    private boolean isRunning;
 
-    // a lot of parameters. Probably refactor to have less.
+    // constructor
     public Task(String name) {
         this.name = name;
         this.start = null;
         this.isRunning = false;
         this.totalTime = Duration.ZERO;
+        this.description = "N/A";
+        this.size = "N/A";
     }
 
     public String getSummary(Task task) {
@@ -558,6 +586,7 @@ class Task {
     
 }
 
+// maybe we don't need this class, just use durantion methods directly
 class DurationUtil {
     protected static Duration calculateTimeDifference(LocalDateTime dateTime1, LocalDateTime dateTime2) {
         return Duration.between(dateTime1, dateTime2);
