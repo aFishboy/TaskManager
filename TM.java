@@ -371,15 +371,18 @@ class SummaryProcessor {
             System.out.println("Current Running Task: \t" + getCurrentRunningTask(tasks).getTaskName() + "\n");
         }
         
-        tasks.forEach(task -> System.out.println(task.getSummary()));
+        tasks.forEach(task -> System.out.println(task.getSummary())); 
+        
+        // if there is only one task, then there is no need to calculate min, max, avg
+        if (tasks.size() > 1){
+            Duration minDuration = calculateMinTime(tasks);
+            Duration maxDuration = calculateMaxTime(tasks);
+            Duration avgDuration = calculateAverageTime(tasks);
 
-        Duration minDuration = calculateMinTime(tasks);
-        Duration maxDuration = calculateMaxTime(tasks);
-        Duration avgDuration = calculateAverageTime(tasks);
-
-        System.out.println("Min Duration of Started Tasks:     \t" + DurationUtil.formatTotalTime(minDuration));
-        System.out.println("Max Duration of Started Tasks:     \t" + DurationUtil.formatTotalTime(maxDuration));
-        System.out.println("Average Duration of Started Tasks: \t" + DurationUtil.formatTotalTime(avgDuration));
+            System.out.println("Min Duration of Started Tasks:     \t" + DurationUtil.formatTotalTime(minDuration));
+            System.out.println("Max Duration of Started Tasks:     \t" + DurationUtil.formatTotalTime(maxDuration));
+            System.out.println("Average Duration of Started Tasks: \t" + DurationUtil.formatTotalTime(avgDuration));
+        }
     }
 }
 
