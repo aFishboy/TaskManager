@@ -19,9 +19,6 @@ public class TM {
         catch (IllegalStateException e) {
             System.out.println(e.getMessage());
         }
-        catch (IllegalArgumentException e) {
-            System.out.println(e.getMessage());
-        }
     }
 }
 
@@ -70,7 +67,7 @@ class StartCommand implements Command{
         
         if (task != null) {
             if (task.isRunning()){
-                throw new IllegalStateException("Task " + taskName + " is already running");
+                throw new IllegalStateException("Task " + taskName + " is already running at line ");
             }
             task.updateStart(timeStamp);
             return null;
@@ -111,7 +108,7 @@ class StopCommand implements Command{
         if (task != null) {
             task.updateStop(timeStamp);
         } else {
-            // todo: need to check if task is running or not, or if it exists
+            // todo: know what line number this is
             throw new IllegalStateException("No existing task for STOP command at File Line ");
         }
         return null;
@@ -250,6 +247,7 @@ class DeleteCommand implements Command{
         if (existingTask == null){
             throw new IllegalStateException("Can't delete a task that does not exist");
         }
+        existingTask.setName(null);
         return existingTask;
     }
 }
@@ -464,7 +462,7 @@ class TaskManager {
 
     private void validateCommand(String commandString, String errorSuffix){
         if (!Arrays.stream(CommandType.values()).anyMatch(command -> command.name().equals(commandString.toUpperCase()))) {
-            throw new IllegalArgumentException("Invalid command " + commandString + errorSuffix);
+            throw new IllegalStateException("Invalid command " + commandString + errorSuffix);
         }
     }
 
