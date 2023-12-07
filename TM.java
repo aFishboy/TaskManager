@@ -7,17 +7,12 @@ import java.util.stream.Collectors;
 public class TM {
     public static void main(String[] args) throws IOException{
         TaskManager tm;
-        try {
-            if(args.length >= 1 && args.length <= 4){
-                tm = TaskManager.getInstance();
-                tm.run(args);
-            }else{
-                System.out.println("Usage: java TM <command> <data>\n" +
-                                    "For a list of commands, type help");
-            }
-        }
-        catch (IllegalStateException e) {
-            System.out.println(e.getMessage());
+        if(args.length >= 1 && args.length <= 4){
+            tm = TaskManager.getInstance();
+            tm.run(args);
+        }else{
+            System.out.println("Usage: java TM <command> <data>\n" +
+                                "For a list of commands, type help");
         }
     }
 }
@@ -328,9 +323,7 @@ class SummaryCommand implements Command{
     }
 }
 
-// processes the summary of the tasks
 class SummaryProcessor {
-
     private static Task getCurrentRunningTask(List<Task> tasks) {
         return tasks.stream()
                 .filter(Task::isRunning)
@@ -372,8 +365,7 @@ class SummaryProcessor {
         }
         
         tasks.forEach(task -> System.out.println(task.getSummary())); 
-        
-        // if there is only one task, then there is no need to calculate min, max, avg
+
         if (tasks.size() > 1){
             Duration minDuration = calculateMinTime(tasks);
             Duration maxDuration = calculateMaxTime(tasks);
@@ -427,7 +419,14 @@ class TaskManager {
     // probably change this function name to be more descriptive
     public void run(String[] input) throws IOException{
         String commandString = input[0];
-        validateCommand(commandString, "");
+
+        try {
+            validateCommand(commandString, "");
+        } catch (IllegalStateException e) {
+            System.out.println(e.getMessage());
+            System.exit(1);
+        }
+
         CommandType action = CommandType.valueOf(commandString.toUpperCase());
         Command command = commandMap.get(action);
         command.execute(input, this.taskMap);
@@ -440,32 +439,45 @@ class TaskManager {
 
         for (String logLine[] : logList) {
             lineNumber++;
-            String commandString = logLine[1];
-            validateCommand(commandString, " at File Line " + lineNumber);
-            String taskName = logLine[2];
-            Task existingTask = taskMap.get(taskName);
-            CommandType action = CommandType.valueOf(commandString.toUpperCase());
-            Command command = commandMap.get(action);
-
-            if (existingTask == null){
-                    Task returnedTask = command.parseLine(logLine, null); 
-                    taskMap.put(taskName, returnedTask);
-            }
-            else {
-                Task returnedTask = command.parseLine(logLine, existingTask);
-                if (returnedTask != null){
-                    taskMap.put(returnedTask.getTaskName(), returnedTask);
-                    taskMap.remove(taskName);
-                }
+            try {
+                processLogLine(logLine, lineNumber, taskMap);
+            } catch (IllegalStateException e) {
+                System.out.println(e.getMessage() + " " + lineNumber);
+                System.exit(1);
             }
         }
         taskMap.values().removeIf(element -> element.getTaskName() == null);
         return taskMap;
     }
 
+    private void processLogLine(String[] logLine, int lineNumber, Map<String, Task> taskMap) {
+        String commandString = logLine[1];
+        validateCommand(commandString, " at File Line " + lineNumber);
+        String taskName = logLine[2];
+        Task existingTask = taskMap.get(taskName);
+        CommandType action = CommandType.valueOf(commandString.toUpperCase());
+        Command command = commandMap.get(action);
+
+        if (existingTask == null){
+            Task returnedTask = command.parseLine(logLine, null); 
+            taskMap.put(taskName, returnedTask);
+        }
+        else {
+            updateExistingTask(logLine, existingTask, command, taskMap);
+        }
+    }
+
+    private void updateExistingTask(String[] logLine, Task existingTask, Command command, Map<String, Task> taskMap) {
+        Task returnedTask = command.parseLine(logLine, existingTask);
+        if (returnedTask != null){
+            taskMap.put(returnedTask.getTaskName(), returnedTask);
+            taskMap.remove(existingTask.getTaskName());
+        }
+    }
+
     private void validateCommand(String commandString, String errorSuffix){
         if (!Arrays.stream(CommandType.values()).anyMatch(command -> command.name().equals(commandString.toUpperCase()))) {
-            throw new IllegalStateException("Invalid command " + commandString + errorSuffix);
+            throw new IllegalStateException("Invalid command " + commandString);
         }
     }
 
