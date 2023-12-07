@@ -1,10 +1,14 @@
+import java.util.Arrays;
+import java.util.Map;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -40,7 +44,7 @@ interface Command {
     // we can use this to check individually for each command if they have proper
     // amount of args and we can later check if it is valid ie not having two 
     // starts going at the same time
-    boolean isProperCommand(String[] input);
+    void isProperCommand(String[] input);
 
     // we can use this to parse the line and store it in the task list
     Task parseLine(String[] input, Task task);
@@ -48,30 +52,27 @@ interface Command {
 
 class StartCommand implements Command{
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) {
+    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException {
         String taskName = input[1];
         boolean anyRunning = taskMap.values().stream()
                             .anyMatch(task -> task != null && task.isRunning());
         if (anyRunning)
             throw new IllegalStateException("Cannot start a new task while another task is already running.");
-        if (isProperCommand(input))
-            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStart\t" + taskName);
+        isProperCommand(input);
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStart\t" + taskName);
     }
 
     @Override
-    public boolean isProperCommand(String[] input) {
+    public void isProperCommand(String[] input) {
         if (input.length != 2){
-            System.out.println("Usage: java TM.java start <task name>\n" +
+            throw new IllegalStateException("Usage: java TM.java start <task name>\n" +
                                "For a list of commands, type help");
-            return false;
         }
-        if (input[1].equals("S") || input[1].equals("M") ||
-                     input[1].equals("L") || input[1].equals("XL")){
-            System.out.println("Error: Sizes [S, M, L, XL] " + 
+        Set<String> sizes = new HashSet<>(Arrays.asList("S", "M", "L", "XL"));
+        if (sizes.contains(input[1])) {
+            throw new IllegalStateException("Error: Sizes [S, M, L, XL] " + 
                                "cannot be used as names");
-            return false;
         }
-        return true;
     }
 
     public Task parseLine(String[] logLine, Task task) throws IllegalStateException {
@@ -93,12 +94,12 @@ class StartCommand implements Command{
     }
 }
 
-class  StopCommand implements Command{    
+class StopCommand implements Command{    
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) {
+    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException {
         String taskName = input[1];
-        
-        if (taskMap.containsKey(taskName) && taskMap.get(taskName).isRunning() && isProperCommand(input)) {
+        isProperCommand(input);
+        if (taskMap.containsKey(taskName) && taskMap.get(taskName).isRunning()) {
             FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tStop\t" + taskName);
         } else {
             throw new IllegalStateException("Invalid stop command for task " + taskName);
@@ -106,13 +107,12 @@ class  StopCommand implements Command{
     }
 
     @Override
-    public boolean isProperCommand(String[] input) {
+    public void isProperCommand(String[] input) {
         boolean isProper = input.length == 2;
         if (!isProper){
-            System.out.println("Usage: java TM.java stop <task name>\n" +
+            throw new IllegalStateException("Usage: java TM.java stop <task name>\n" +
                                "For a list of commands, type help");
         }
-        return isProper;
     }
 
     @Override
@@ -128,50 +128,46 @@ class  StopCommand implements Command{
 
 }
 
-class DescribeCommand implements Command{
+class DescribeCommand implements Command {
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) {
-        String[] sizes = {"S", "M", "L", "XL"};
+    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException {
+        final String[] SIZES = {"S", "M", "L", "XL"};
         String log = input[1] + "\t\"" + input[2] + "\"";
 
+        isProperCommand(input);
         if (input.length == 4) {
-            // check if size is correct format (S, M, L, XL), if not, ignore size since it is optional
-            // should discuss if this should ignore the error (warn the user) or throw an exception
             String size = input[3].toUpperCase();
-            if (Arrays.asList(sizes).contains(size)) {
+            if (Arrays.asList(SIZES).contains(size)) {
                 log += "\t" + size;
-            }
-            else {
-                System.out.println("Invalid size, ignoring... Please enter a valid size next time (S, M, L, XL)");
+            } else {
+                System.err.println("Invalid size, ignoring... Please enter a valid size next time (S, M, L, XL)");
             }
         }
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tDescribe\t" + log);
     }
 
     @Override
-    public boolean isProperCommand(String[] input) {
-        boolean isProper = input.length >= 1 && input.length <= 4;
-        if (!isProper){
-            System.out.println("Usage: java TM.java describe <task name> " + 
-                               "<description> [{S|M|L|XL}]\n" +
-                               "For a list of commands, type help ");
+    public void isProperCommand(String[] input) {
+        if (input.length < 1 || input.length > 4) {
+            throw new IllegalStateException("Usage: java TM.java describe <task name> " +
+                    "<description> [{S|M|L|XL}]\n" +
+                    "For a list of commands, type help ");
         }
-        return isProper;
     }
+
     @Override
     public Task parseLine(String[] logLine, Task task) {
-        LocalDateTime timeStamp = LocalDateTime.parse(logLine[0]);
         String taskName = logLine[2];
         String description = logLine[3];
         String size = null;
-        
-        if (logLine.length == 5){
+
+        if (logLine.length == 5) {
             size = logLine[4];
         }
         if (task != null) {
             task.updateDescription(description, size);
             return null;
-        }else{
+        } else {
             Task newTask = new Task(taskName);
             newTask.setDescription(description);
             newTask.setSize(size);
@@ -181,19 +177,18 @@ class DescribeCommand implements Command{
 }
 class SizeCommand implements Command{
         @Override
-    public void execute(String[] input, Map<String, Task> taskMap) {
-        if (isProperCommand(input))
-            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tSize\t" + input[1] + "\t" + input[2].toUpperCase());
+    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException{
+        isProperCommand(input);
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tSize\t" + input[1] + "\t" + input[2].toUpperCase());
     }
 
     @Override
-    public boolean isProperCommand(String[] input) {
+    public void isProperCommand(String[] input) {
         boolean isProper = input.length == 3; // need to also check it is proper size
         if (!isProper){
-            System.out.println("Usage: java TM.java size <task  name> " +
+            throw new IllegalStateException("Usage: java TM.java size <task  name> " +
                                "{S|M|L|XL}\nFor a list of commands, type help");
         }
-        return isProper;
     }
 
     @Override
@@ -213,20 +208,22 @@ class SizeCommand implements Command{
 
 class RenameCommand implements Command{
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) {
-        if (isProperCommand(input))
-            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tRename\t" + input[1] + "\t" + input[2]);
+    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException{
+        String taskName = input[1];
+        isProperCommand(input);
+        if (!taskMap.containsKey(taskName))
+            throw new IllegalStateException("Cannot rename nonexistent task");
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tRename\t" + input[1] + "\t" + input[2]);
     }
 
     @Override
-    public boolean isProperCommand(String[] input) {
+    public void isProperCommand(String[] input) {
         boolean isProper = input.length == 3;
         if (!isProper){
-            System.out.println("Usage: java TM.java rename <old task name>" + 
+            throw new IllegalStateException("Usage: java TM.java rename <old task name>" + 
                                " <new task name>\n" +
                                "For a list of commands, type help");
         }
-        return isProper;
     }
 
     @Override
@@ -242,19 +239,21 @@ class RenameCommand implements Command{
 
 class DeleteCommand implements Command{
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) {
-        if (isProperCommand(input))
-            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tDelete\t" + input[1]);
+    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException{
+        String taskName = input[1];
+        isProperCommand(input);
+        if (!taskMap.containsKey(taskName))
+            throw new IllegalStateException("Cannot rename nonexistent task");
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + "\tDelete\t" + input[1]);
     }
 
     @Override
-    public boolean isProperCommand(String[] input) {
+    public void isProperCommand(String[] input) {
         boolean isProper = input.length == 2;
         if (!isProper){
-            System.out.println("Usage: java TM.java delete <task name> \n" +
+            throw new IllegalStateException("Usage: java TM.java delete <task name> \n" +
                                "For a list of commands, type help");
         }
-        return isProper;
     }
 
     @Override
@@ -274,19 +273,17 @@ class HelpCommand implements Command {
         "size <task name> {S|M|L|XL}\nrename <old task name> <new task name>\n"+
         "delete <task name>\nsummary [<task name> | {S|M|L|XL}]\nhelp\n";
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) {
-        if (isProperCommand(input)) {
-            System.out.println(HELP_MESSAGE);
-        }
+    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException{
+        isProperCommand(input);
+        System.out.println(HELP_MESSAGE);
     }
    
     @Override
-    public boolean isProperCommand(String[] input) {
-        boolean isProper = input.length == 1 || input.length == 2;
+    public void isProperCommand(String[] input) {
+        boolean isProper = input.length == 1;
         if (!isProper) {
-            System.out.println("Usage: java TM.java help\n");
+            throw new IllegalStateException("Usage: java TM.java help\n");
         }
-        return isProper;
     }
 
     @Override
@@ -298,20 +295,19 @@ class HelpCommand implements Command {
 
 class SummaryCommand implements Command{
     @Override
-    public void execute(String[] input, Map<String, Task> taskMap) {
-        if (!isProperCommand(input))
+    public void execute(String[] input, Map<String, Task> taskMap) throws IllegalStateException{
+        isProperCommand(input);
             return;   
     }
 
     @Override
-    public boolean isProperCommand(String[] input) {
-        boolean isProper = input.length == 1;
+    public void isProperCommand(String[] input) {
+        boolean isProper = input.length == 1 || input.length == 2;
         if (!isProper){
-            System.out.println("Usage: java TM.java summary " + 
+            throw new IllegalStateException("Usage: java TM.java summary " + 
                                "[<task name> | {S|M|L|XL}]\n" +
                                "For a list of commands, type help");
         }
-        return isProper;
     }
 
     @Override
@@ -369,14 +365,22 @@ class TaskManager {
 
     // probably change this function name to be more descriptive
     public void run(String[] input) {
-        CommandType action = getCommandType(input[0]);
-        Command command = commandMap.get(action);
         try{
-            command.execute(input, this.taskMap);
-        } catch (IllegalStateException e){
-                System.err.println(e.getMessage());
+            CommandType action = getCommandType(input[0]);
+            Command command = commandMap.get(action);
+            if (command != null) {
+                command.execute(input, this.taskMap);
+            } else {
+                // Handle the case where the command is not found
+                System.err.println("Command not found for action: " + action);
                 System.exit(1);
-
+            }
+        } catch (IllegalStateException e){
+            System.err.println(e.getMessage());
+            System.exit(1);
+        } catch (IllegalArgumentException e) {
+            System.err.println("Invalid command type: " + input[0]);
+            System.exit(1);
         }
     }
 
@@ -472,14 +476,11 @@ class Task {
 
     // start, stop, describe, size, rename, methods
 
-
     @Override
     public String toString() {
         return "Task [name=" + name + ", description=" + description + ", start=" + start + ", totalTime=" + totalTime
                 + ", size=" + size + ", currentlyRunning=" + isRunning + "]";
     }
-
-    
 
     public void setSize(String size) {
         this.size = size;
