@@ -147,11 +147,14 @@ class DescribeCommand implements Command {
             size = logLine[4];
         }
         if (task != null) {
-            task.updateTask(description, size);
+            task.updateDescription(description);
+            task.updateSize(size);
             return null;
         } else {
             Task newTask = new Task(taskName);
-            return newTask.updateTask(description, size);
+            newTask.updateDescription(description);
+            newTask.updateSize(size);
+            return newTask;
         }
     }
 }
@@ -178,11 +181,12 @@ class SizeCommand implements Command{
         String taskName = logLine[2];
         String taskSize = logLine[3];
         if (task != null) {
-            task.updateTask(null, taskSize);
+            task.updateSize(taskSize);
             return null;
         } else {
             Task newTask = new Task(taskName);
-            return newTask.updateTask(null, taskSize);
+            newTask.updateSize(taskSize);
+            return newTask;
         }
     }
 }
@@ -339,12 +343,16 @@ class SummaryProcessor {
     }
 
     private static Duration calculateAverageTime(List<Task> tasks) {
-        Duration totalTime = calculateTotalTime(tasks);
-        return totalTime.dividedBy(tasks.size());
+        List<Task> nonZeroTasks = tasks.stream()
+                .filter(task -> task.getDuration().toMillis() > 0)
+                .toList();
+        Duration totalTime = calculateTotalTime(nonZeroTasks);
+        return totalTime.dividedBy(nonZeroTasks.size());
     }
 
     private static Duration calculateMinTime(List<Task> tasks) {
         return tasks.stream()
+                .filter(task -> !task.getDuration().equals(Duration.ZERO))
                 .map(Task::getDuration)
                 .min(Duration::compareTo)
                 .orElse(Duration.ZERO);
@@ -509,14 +517,6 @@ class Task {
         this.name = newTaskName;
     }
 
-    public Task updateTask(String description, String size) {
-        if (description != null)
-            this.description = description;
-        if (size != null)
-            this.size = size;
-        return this;
-    }
-
     public void updateStart(LocalDateTime timeStamp) {
         if (isRunning){
             throw new IllegalStateException("Task " + this.name + " is already running");
@@ -533,6 +533,16 @@ class Task {
         this.start = null;
         this.totalTime = this.totalTime.plus(duration);
         this.isRunning = false;
+    }
+
+    public void updateDescription(String description){
+        if (description != null)
+            this.description = description;
+    }
+
+    public void updateSize(String taskSize){
+        if (size != null)
+            this.size = taskSize;
     }
 
     public String getSummary() {
