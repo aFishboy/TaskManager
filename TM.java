@@ -2,6 +2,7 @@ import java.io.*;
 import java.time.*;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.regex.*;
 import java.util.stream.Collectors;
 
 public class TM {
@@ -40,7 +41,7 @@ class StartCommand implements Command {
                                             "another task is already running.");
         checkCommandFormat(input);
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
-                            "\tStart\t" + taskName);
+                            "\tStart\t\""+ taskName + "\"");
     }
 
     @Override
@@ -90,7 +91,7 @@ class StopCommand implements Command {
                                             " is not running");
         }
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
-                            "\tStop\t" + taskName);
+                            "\tStop\t\"" + taskName + "\"");
     }
 
     @Override
@@ -121,7 +122,8 @@ class DescribeCommand implements Command {
     public void execute(String[] input, Map<String, Task> taskMap) 
                                                             throws IOException {
         checkCommandFormat(input);
-        String log = input[1].toUpperCase() + "\t\"" + input[2] + "\"";
+        String taskName = input[1].toUpperCase();
+        String log = "\"" + taskName  + "\"" + "\t\"" + input[2] + "\"";
 
         if (input.length == 4) {
             String size = input[3].toUpperCase();
@@ -129,7 +131,7 @@ class DescribeCommand implements Command {
                 log += "\t" + size;
             } else {
                 System.err.println("Invalid size, description will be applied" +
-                " and size will be ignored...\n" + "Please enter a valid size"+
+                " and size will be ignored...\n" + "Please enter a valid size" +
                 " next time (S, M, L, XL)");
             }
         }
@@ -151,14 +153,15 @@ class DescribeCommand implements Command {
     public Task parseLine(String[] logLine, Task task) {
         String taskName = logLine[2];
         String description = logLine[3];
-        String size = null;
+        String size = "N/A";
 
         if (logLine.length == 5) {
             size = logLine[4];
         }
         if (task != null) {
             task.updateDescription(description);
-            task.updateSize(size);
+            if (logLine.length == 5)
+                task.updateSize(size);
             return null;
         } else {
             Task newTask = new Task(taskName);
@@ -173,9 +176,10 @@ class SizeCommand implements Command {
     public void execute(String[] input, Map<String, Task> taskMap) 
                                                         throws IOException {
         checkCommandFormat(input);
+        String taskName = input[1].toUpperCase();
+        String size = input[2].toUpperCase();   
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
-                            "\tSize\t" + input[1].toUpperCase() + "\t" + 
-                            input[2].toUpperCase());
+                            "\tSize\t\"" + taskName  + "\"\t" + size);
     }
 
     @Override
@@ -216,7 +220,7 @@ class RenameCommand implements Command {
             throw new IllegalStateException("Cannot rename task to existing " +
                                             "task name");
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) +
-                       "\tRename\t" + taskNameOld + "\t" + taskRename);
+                    "\tRename\t\"" + taskNameOld + "\"\t\"" + taskRename + "\"");
     }
 
     @Override
@@ -249,7 +253,7 @@ class DeleteCommand implements Command {
         if (!taskMap.containsKey(taskName))
             throw new IllegalStateException("Can't delete nonexistent task");
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
-                                                    "\tDelete\t" + taskName);
+                                            "\tDelete\t\"" +  taskName + "\"");
     }
 
     @Override
@@ -417,21 +421,39 @@ class FileUtil {
         writer.close();
     }
 
-    public static List<String[]> convertLogToList() 
-                                        throws FileNotFoundException {
+    public static List<String[]> convertLogToList() throws FileNotFoundException {
         List<String[]> lines = new ArrayList<>();
         File file = new File(LOGFILE); 
         Scanner scanner = new Scanner(file);
 
         while (scanner.hasNext()) {
-            String line = scanner.nextLine().trim();
+            String line = scanner.nextLine().trim().toUpperCase();
             if (line.isEmpty())
                 continue;
-            String[] lineArray = line.toUpperCase().split("\t");
+            String[] lineArray = parseLine(line);
+            System.out.println(String.join(",", lineArray));
+            if(lineArray[1].equals("DESCRIBE")){
+                System.out.println(lineArray[3]);
+                if(lineArray.length == 5){
+                    System.out.println(lineArray[3] + " " + lineArray[4]);
+                }
+            }
             lines.add(lineArray);
         }
         scanner.close();
         return lines;
+    }
+
+    private static String[] parseLine(String line) {
+        List<String> parts = new ArrayList<>();
+        // matches regex pattern split by space, but ignore spaces within quotes
+        Matcher matchPattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*")
+                           .matcher(line);
+        while (matchPattern.find()) {
+            parts.add(matchPattern.group(1)
+                      .replace("\"", ""));
+        }
+        return parts.toArray(new String[0]);
     }
 }
 
