@@ -62,10 +62,6 @@ class StartCommand implements Command {
         String taskName = logLine[2];
         
         if (task != null) {
-            if (task.isRunning()) {
-                throw new IllegalStateException("Task " + taskName + 
-                                                " is already running");
-            }
             task.updateStart(timeStamp);
             return null;
         } else {
@@ -421,7 +417,8 @@ class FileUtil {
         writer.close();
     }
 
-    public static List<String[]> convertLogToList() throws FileNotFoundException {
+    public static List<String[]> convertLogToList() throws 
+                                                        FileNotFoundException {
         List<String[]> lines = new ArrayList<>();
         File file = new File(LOGFILE); 
         Scanner scanner = new Scanner(file);
@@ -511,7 +508,7 @@ class Task {
     public void updateStart(LocalDateTime timeStamp) {
         if (isRunning) {
             throw new IllegalStateException("Task " + this.name + 
-                                            " is already running");
+                                            " is already running, error");
         }
         this.start = timeStamp;
         this.isRunning = true;
@@ -520,7 +517,7 @@ class Task {
     public void updateStop(LocalDateTime timeStamp) {
         if (!isRunning) {
             throw new IllegalStateException("Task " + this.name + 
-                                       " cannot stop since it has not started");
+                                " cannot stop since it has not started, error");
         }
         Duration duration = Duration.between(this.start, timeStamp);
         this.start = null;
@@ -608,7 +605,8 @@ class TaskMapProcessor {
         Command command = commandMap.get(action);
 
         if (existingTask == null){
-            Task returnedTask = command.parseLine(logLine, null); 
+            Task returnedTask = command.parseLine(logLine, null);
+            // check current running task, if exists, throw exception
             taskMap.put(taskName, returnedTask);
         }
         else {
