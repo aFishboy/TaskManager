@@ -130,7 +130,7 @@ class DescribeCommand implements Command {
                 log += "\t" + size;
             } else {
                 System.err.println("Invalid size, description will be applied" +
-                " and size will be ignored...\n" + "Please enter a valid size" +
+                " but size will be ignored...\n" + "Please enter a valid size" +
                 " next time (S, M, L, XL)");
             }
         }
