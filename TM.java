@@ -359,8 +359,7 @@ class SummaryProcessor {
     }
 
     private static Duration calculateTotalTime(List<Task> tasks) {
-        return tasks.stream()
-                    .map(Task::getDuration)
+        return tasks.stream().map(Task::getDuration)
                     .reduce(Duration.ZERO, Duration::plus);
     }
 
@@ -387,7 +386,9 @@ class SummaryProcessor {
         Duration maxDuration = calculateMaxTime(tasks);
         Duration avgDuration = calculateAverageTime(tasks);
 
-        System.out.println("Min Duration of Started Tasks:     \t" + 
+        System.out.println("Total Time Spent on Tasks:      \t" +
+            DurationUtil.formatTotalTime(calculateTotalTime(tasks)) +
+            "\nMin Duration of Started Tasks:     \t" + 
             DurationUtil.formatTotalTime(minDuration) +
             "\nMax Duration of Started Tasks:     \t" + 
             DurationUtil.formatTotalTime(maxDuration)+ 
@@ -472,19 +473,19 @@ class TaskManager {
         }
     }
 
-    public static TaskManager getInstance() throws FileNotFoundException{
-        if(instance == null) {
-            instance = new TaskManager();
-        }
-        return instance;
-    }
-
     protected static void validateCommand(String commandString) {
         if (!Arrays.stream(CommandType.values())
                     .anyMatch(command -> command.name()
                     .equals(commandString.toUpperCase()))) {
             throw new IllegalStateException("Invalid command " + commandString);
         }
+    }
+
+    public static TaskManager getInstance() throws FileNotFoundException{
+        if(instance == null) {
+            instance = new TaskManager();
+        }
+        return instance;
     }
 }
 
@@ -528,20 +529,18 @@ class Task {
     }
 
     public void updateDescription(String description) {
-        if (description != null)
-            this.description = description;
+        this.description = description;
     }
 
     public void updateSize(String taskSize) {
-        if (size != null)
-            this.size = taskSize;
+        this.size = taskSize;
     }
 
     public String getSummary() {
         return "Summary for Task  \t:\t " + this.name +
                 "\nDescription     \t:\t " + this.description + 
                 "\nTotal Time Spent\t:\t " + DurationUtil
-                    .formatTotalTime(this.totalTime) + 
+                    .formatTotalTime(getDuration()) + 
                 "\nTask Size       \t:\t " + this.size + "\n";
     }
 
@@ -554,6 +553,10 @@ class Task {
     }
 
     public Duration getDuration() {
+        if (this.isRunning) {
+            return this.totalTime.plus(Duration.between(this.start, 
+                                            LocalDateTime.now()));
+        }
         return this.totalTime;
     }
 
