@@ -20,7 +20,6 @@ enum CommandType {
     START, STOP, DESCRIBE, SUMMARY, SIZE, RENAME, DELETE, HELP;
 }
 
-
 interface Command {
     final String[] SIZES = {"S", "M", "L", "XL"};
     final String HELPSTRING = "For a list of commands, type help";
@@ -82,14 +81,16 @@ class StopCommand implements Command {
                                                             throws IOException {
         String taskName = input[1].toUpperCase();
         checkCommandFormat(input);
-        if (taskMap.containsKey(taskName) &&taskMap.get(taskName).isRunning()) {
-            FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
-                                "\tStop\t" + taskName);
-        } else {
-            // need to check if task is running or not, or if it exists
-            throw new IllegalStateException("Invalid stop command for task " + 
-                                            taskName);
+        if(!taskMap.containsKey(taskName)) {
+            throw new IllegalStateException("Task " + taskName + 
+                                            " does not exist");
         }
+        else if (!taskMap.get(taskName).isRunning()) {
+            throw new IllegalStateException("Task " + taskName + 
+                                            " is not running");
+        }
+        FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
+                            "\tStop\t" + taskName);
     }
 
     @Override
@@ -127,8 +128,9 @@ class DescribeCommand implements Command {
             if (Arrays.asList(SIZES).contains(size)) {
                 log += "\t" + size;
             } else {
-                System.err.println("Invalid size, ignoring... Please enter a " 
-                                    + "valid size next time (S, M, L, XL)");
+                System.err.println("Invalid size, description will be applied" +
+                " and size will be ignored...\n" + "Please enter a valid size"+
+                " next time (S, M, L, XL)");
             }
         }
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
@@ -172,7 +174,7 @@ class SizeCommand implements Command {
                                                         throws IOException {
         checkCommandFormat(input);
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
-                            "\tSize\t" + input[1] + "\t" + 
+                            "\tSize\t" + input[1].toUpperCase() + "\t" + 
                             input[2].toUpperCase());
     }
 
@@ -377,6 +379,19 @@ class SummaryProcessor {
                     .max(Duration::compareTo).orElse(Duration.ZERO);
     }
 
+    private static void displayTaskOverview(List<Task> tasks){
+        Duration minDuration = calculateMinTime(tasks);
+        Duration maxDuration = calculateMaxTime(tasks);
+        Duration avgDuration = calculateAverageTime(tasks);
+
+        System.out.println("Min Duration of Started Tasks:     \t" + 
+            DurationUtil.formatTotalTime(minDuration) +
+            "\nMax Duration of Started Tasks:     \t" + 
+            DurationUtil.formatTotalTime(maxDuration)+ 
+            "\nAverage Duration of Started Tasks: \t" + 
+            DurationUtil.formatTotalTime(avgDuration));
+    }
+
     public static void printSummary(List<Task> tasks) {
         System.out.println("Summary:\n");
 
@@ -388,16 +403,7 @@ class SummaryProcessor {
         tasks.forEach(task -> System.out.println(task.getSummary())); 
 
         if (tasks.size() > 1) {
-            Duration minDuration = calculateMinTime(tasks);
-            Duration maxDuration = calculateMaxTime(tasks);
-            Duration avgDuration = calculateAverageTime(tasks);
-
-            System.out.println("Min Duration of Started Tasks:     \t" + 
-                DurationUtil.formatTotalTime(minDuration) +
-                "\nMax Duration of Started Tasks:     \t" + 
-                DurationUtil.formatTotalTime(maxDuration)+ 
-                "\nAverage Duration of Started Tasks: \t" + 
-                DurationUtil.formatTotalTime(avgDuration));
+            displayTaskOverview(tasks);
         }
     }
 }
@@ -543,12 +549,6 @@ class Task {
     public boolean isRunning() {
         return this.isRunning;
     }
-
-    @Override
-    public String toString() {
-        return "Task [name=" + name + ", description=" + description + ", size=" + size + ", start=" + start
-                + ", totalTime=" + totalTime + ", isRunning=" + isRunning + "]";
-    }
 }
 
 class DurationUtil {
@@ -578,7 +578,6 @@ class TaskMapProcessor {
             }
         }
         taskMap.values().removeIf(element -> element.getTaskName() == null);
-        taskMap.values().forEach(System.out::println);
         return taskMap;
     }
 
