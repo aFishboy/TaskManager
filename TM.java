@@ -109,7 +109,6 @@ class StopCommand implements Command {
         if (task != null) {
             task.updateStop(timeStamp);
         } else {
-            // todo: know what line number this is
             throw new IllegalStateException("No existing task for STOP " +
                                             "command at File Line ");
         }
@@ -431,13 +430,6 @@ class FileUtil {
             if (line.isEmpty())
                 continue;
             String[] lineArray = parseLine(line);
-            System.out.println(String.join(",", lineArray));
-            if(lineArray[1].equals("DESCRIBE")){
-                System.out.println(lineArray[3]);
-                if(lineArray.length == 5){
-                    System.out.println(lineArray[3] + " " + lineArray[4]);
-                }
-            }
             lines.add(lineArray);
         }
         scanner.close();
@@ -445,15 +437,14 @@ class FileUtil {
     }
 
     private static String[] parseLine(String line) {
-        List<String> parts = new ArrayList<>();
-        // matches regex pattern split by space, but ignore spaces within quotes
+        List<String> lineList = new ArrayList<>();
         Matcher matchPattern = Pattern.compile("([^\"]\\S*|\".+?\")\\s*")
                            .matcher(line);
         while (matchPattern.find()) {
-            parts.add(matchPattern.group(1)
+            lineList.add(matchPattern.group(1)
                       .replace("\"", ""));
         }
-        return parts.toArray(new String[0]);
+        return lineList.toArray(new String[0]);
     }
 }
 
@@ -467,7 +458,6 @@ class TaskManager {
         this.taskMap = TaskMapProcessor.createTaskMap(commandMap);
     }
 
-    // probably change this function name to be more descriptive
     public void run(String[] input) throws IOException {
         String commandString = input[0].toUpperCase();
 
