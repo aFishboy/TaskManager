@@ -64,7 +64,7 @@ class StartCommand implements Command {
         if (task != null) {
             if (task.isRunning()) {
                 throw new IllegalStateException("Task " + taskName + 
-                                                " is already running at line ");
+                                                " is already running");
             }
             task.updateStart(timeStamp);
             return null;
@@ -110,7 +110,7 @@ class StopCommand implements Command {
             task.updateStop(timeStamp);
         } else {
             throw new IllegalStateException("No existing task for STOP " +
-                                            "command at File Line ");
+                                            "command");
         }
         return null;
     }
@@ -234,8 +234,8 @@ class RenameCommand implements Command {
     @Override
     public Task parseLine(String[] logLine, Task task) {
         if (task == null) {
-            throw new IllegalStateException("Can't rename a task that does"
-                                            + "not exist");
+            throw new IllegalStateException("Can't rename a task that doesn't "
+                                            + "exist");
         }
         String newTaskName = logLine[3];
         task.setName(newTaskName);
@@ -298,7 +298,7 @@ class HelpCommand implements Command {
 
     @Override
     public Task parseLine(String[] logLine, Task existingTask) {
-        throw new IllegalStateException("Illegal Log Line Command Help");
+        throw new IllegalStateException("Illegal log line command help");
 
     }
 }
@@ -348,7 +348,7 @@ class SummaryCommand implements Command {
 
     @Override
     public Task parseLine(String[] logLine, Task existingTask) {
-        throw new IllegalStateException("Illegal Log Line Command Summary");
+        throw new IllegalStateException("Illegal log line command summary");
     }
 }
 
@@ -462,7 +462,7 @@ class TaskManager {
         String commandString = input[0].toUpperCase();
 
         try {
-            validateCommand(commandString, "");
+            validateCommand(commandString);
             CommandType action = CommandType.valueOf(commandString);
             Command command = commandMap.get(action);
             command.execute(input, this.taskMap);
@@ -479,8 +479,7 @@ class TaskManager {
         return instance;
     }
 
-    protected static void validateCommand(String commandString,
-                                          String errorSuffix) {
+    protected static void validateCommand(String commandString) {
         if (!Arrays.stream(CommandType.values())
                     .anyMatch(command -> command.name()
                     .equals(commandString.toUpperCase()))) {
@@ -585,7 +584,10 @@ class TaskMapProcessor {
             try {
                 processLogLine(logLine, lineNumber, taskMap);
             } catch (IllegalStateException e) {
-                System.out.println(e.getMessage() + " " + lineNumber);
+                System.out.println(e.getMessage() + " at line " + lineNumber);
+                System.exit(1);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                System.out.println("Invalid log line at line " + lineNumber);
                 System.exit(1);
             }
         }
@@ -596,8 +598,7 @@ class TaskMapProcessor {
     private static void processLogLine(String[] logLine, int lineNumber, 
                                         Map<String, Task> taskMap) {
         String commandString = logLine[1];
-        TaskManager.validateCommand(commandString, " at File Line " + 
-                                    lineNumber);
+        TaskManager.validateCommand(commandString);
         String taskName = logLine[2];
         Task existingTask = taskMap.get(taskName);
         CommandType action = CommandType.valueOf(commandString.toUpperCase());
