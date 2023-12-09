@@ -449,10 +449,24 @@ class TaskManager {
     private static TaskManager instance;
     private Map<CommandType, Command> commandMap; 
     private Map<String, Task> taskMap;
+    private static final String LOGFILE = "TM.log";
     
     private TaskManager() throws FileNotFoundException {
+        try {
+            createLogFile();
+        } catch (IOException e) {
+            System.out.println("Error creating log file");
+            System.exit(1);
+        }
         this.commandMap = CommandMapFactory.createCommandMap();
-        this.taskMap = TaskMapProcessor.createTaskMap(  commandMap);
+        this.taskMap = TaskMapProcessor.createTaskMap(commandMap);
+    }
+
+    public void createLogFile() throws IOException {
+        File file = new File(LOGFILE);
+        if (!file.exists()) {
+            file.createNewFile();
+        }
     }
 
     public void run(String[] input) throws IOException {
