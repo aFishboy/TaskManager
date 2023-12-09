@@ -215,7 +215,7 @@ class RenameCommand implements Command {
             throw new IllegalStateException("Cannot rename task to existing " +
                                             "task name");
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) +
-                    "\tRename\t\"" + taskNameOld + "\"\t\"" + taskRename + "\"");
+                "\tRename\t\"" + taskNameOld + "\"\t\"" + taskRename + "\"");
     }
 
     @Override
@@ -255,8 +255,7 @@ class DeleteCommand implements Command {
 
     @Override
     public void checkCommandFormat(String[] input) {
-        boolean isProper = input.length == 2;
-        if (!isProper) {
+        if (input.length != 2) {
             throw new IllegalStateException("Usage: java TM.java delete"+
                                             "<task name> \n" + HELPSTRING);
         }
@@ -327,8 +326,7 @@ class SummaryCommand implements Command {
 
     @Override
     public void checkCommandFormat(String[] input) {
-        boolean isProper = input.length == 1 || input.length == 2;
-        if (!isProper) {
+        if (input.length > 2) {
             throw new IllegalStateException("Usage: java TM.java summary " + 
                                             "[<task name> | {S|M|L|XL}]\n" +
                                             HELPSTRING);
