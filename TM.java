@@ -237,7 +237,7 @@ class RenameCommand implements Command {
                                             + "exist");
         }
         String newTaskName = logLine[3];
-        task.setName(newTaskName);
+        task.updateName(newTaskName);
         return task;
     }
 }
@@ -268,7 +268,7 @@ class DeleteCommand implements Command {
             throw new IllegalStateException("Can't delete a task that does " +
                                             "not exist");
         }
-        existingTask.setName(null);
+        existingTask.updateName(null);
         return existingTask;
     }
 }
@@ -501,7 +501,7 @@ class Task {
         this.size = "N/A";
     }
 
-    public void setName(String newTaskName) {
+    public void updateName(String newTaskName) {
         this.name = newTaskName;
     }
 
