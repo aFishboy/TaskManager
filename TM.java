@@ -49,8 +49,7 @@ class StartCommand implements Command {
             throw new IllegalStateException("Usage: java TM.java start " + 
                                             "<task name>\n" + HELPSTRING);
         }
-        Set<String> sizes = new HashSet<>(Arrays.asList("S","M","L","XL"));
-        if (sizes.contains(input[1].toUpperCase())) {
+        else if (Arrays.asList(SIZES).contains(input[1].toUpperCase())) {
             throw new IllegalStateException("Error: Sizes [S, M, L, XL] " + 
                                             "cannot be used as names");
         }
@@ -90,8 +89,7 @@ class StopCommand implements Command {
 
     @Override
     public void checkCommandFormat(String[] input) {
-        boolean isProper = input.length == 2;
-        if (!isProper) {
+        if (input.length != 2) {
             throw new IllegalStateException("Usage: java TM.java stop" + 
                                             " <task name>\n" + HELPSTRING);
         }
@@ -133,11 +131,15 @@ class DescribeCommand implements Command {
 
     @Override
     public void checkCommandFormat(String[] input) {
-        if (input.length < 2 || input.length > 4) {
+        if (input.length < 3 || input.length > 4) {
             throw new IllegalStateException("Usage: java TM.java describe " +
                                             "<task name> " +
                                             "<description> [{S|M|L|XL}]\n" +
                                             HELPSTRING);
+        }
+        else if (Arrays.asList(SIZES).contains(input[1].toUpperCase())) {
+            throw new IllegalStateException("Error: Sizes [S, M, L, XL] " + 
+                                            "cannot be used as names");
         }
     }
 
@@ -175,11 +177,14 @@ class SizeCommand implements Command {
 
     @Override
     public void checkCommandFormat(String[] input) {
-        boolean isProper = input.length == 3;
-        if (!isProper) {
+        if (input.length != 3) {
             throw new IllegalStateException("Usage: java TM.java size "+
                                             " <task name> " +
                                             "{S|M|L|XL}\n" + HELPSTRING);
+        }
+        else if (Arrays.asList(SIZES).contains(input[1].toUpperCase())) {
+            throw new IllegalStateException("Error: Sizes [S, M, L, XL] " + 
+                                            "cannot be used as names");
         }
     }
 
@@ -214,11 +219,14 @@ class RenameCommand implements Command {
     }
 
     @Override
-    public void checkCommandFormat(String[] input) {
-        boolean isProper = input.length == 3;
-        if (!isProper) {
+    public void checkCommandFormat(String[] input) { 
+        if (input.length != 3) {
             throw new IllegalStateException("Usage: java TM.java rename" +
                             " <old task name> <new task name>\n" + HELPSTRING);
+        }
+        else if (Arrays.asList(SIZES).contains(input[2].toUpperCase())) {
+            throw new IllegalStateException("Error: Sizes [S, M, L, XL] " + 
+                                            "cannot be used as names");
         }
     }
 
@@ -279,8 +287,7 @@ class HelpCommand implements Command {
    
     @Override
     public void checkCommandFormat(String[] input) {
-        boolean isProper = input.length == 1;
-        if (!isProper) {
+        if (input.length == 1) {
             throw new IllegalStateException("Usage: java TM.java help\n");
         }
     }
