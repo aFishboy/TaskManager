@@ -39,7 +39,6 @@ class StartCommand implements Command {
         if (anyRunning)
             throw new IllegalStateException("Cannot start a new task while " + 
                                             "another task is already running.");
-        checkCommandFormat(input);
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
                             "\tStart\t\""+ taskName + "\"");
     }
@@ -77,7 +76,6 @@ class StopCommand implements Command {
     public void execute(String[] input, Map<String, Task> taskMap) 
                                                             throws IOException {
         String taskName = input[1].toUpperCase();
-        checkCommandFormat(input);
         if(!taskMap.containsKey(taskName)) {
             throw new IllegalStateException("Task " + taskName + 
                                             " does not exist");
@@ -95,7 +93,7 @@ class StopCommand implements Command {
         boolean isProper = input.length == 2;
         if (!isProper) {
             throw new IllegalStateException("Usage: java TM.java stop" + 
-                                            "<task name>\n" + HELPSTRING);
+                                            " <task name>\n" + HELPSTRING);
         }
     }
 
@@ -116,7 +114,6 @@ class DescribeCommand implements Command {
     @Override
     public void execute(String[] input, Map<String, Task> taskMap) 
                                                             throws IOException {
-        checkCommandFormat(input);
         String taskName = input[1].toUpperCase();
         String log = "\"" + taskName  + "\"" + "\t\"" + input[2] + "\"";
 
@@ -138,7 +135,7 @@ class DescribeCommand implements Command {
     public void checkCommandFormat(String[] input) {
         if (input.length < 2 || input.length > 4) {
             throw new IllegalStateException("Usage: java TM.java describe " +
-                                            " <task name> " +
+                                            "<task name> " +
                                             "<description> [{S|M|L|XL}]\n" +
                                             HELPSTRING);
         }
@@ -170,7 +167,6 @@ class SizeCommand implements Command {
     @Override
     public void execute(String[] input, Map<String, Task> taskMap) 
                                                         throws IOException {
-        checkCommandFormat(input);
         String taskName = input[1].toUpperCase();
         String size = input[2].toUpperCase();   
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
@@ -208,7 +204,6 @@ class RenameCommand implements Command {
                                                 throws IOException {
         String taskNameOld = input[1].toUpperCase();
         String taskRename = input[2].toUpperCase();
-        checkCommandFormat(input);
         if (!taskMap.containsKey(taskNameOld))
             throw new IllegalStateException("Cannot rename nonexistent task");
         if (taskMap.containsKey(taskRename))
@@ -223,7 +218,7 @@ class RenameCommand implements Command {
         boolean isProper = input.length == 3;
         if (!isProper) {
             throw new IllegalStateException("Usage: java TM.java rename" +
-                            "<old task name> <new task name>\n" + HELPSTRING);
+                            " <old task name> <new task name>\n" + HELPSTRING);
         }
     }
 
@@ -244,7 +239,6 @@ class DeleteCommand implements Command {
     public void execute(String[] input, Map<String, Task> taskMap) throws 
                         IOException {
         String taskName = input[1].toUpperCase();
-        checkCommandFormat(input);
         if (!taskMap.containsKey(taskName))
             throw new IllegalStateException("Can't delete nonexistent task");
         FileUtil.writeToFile(LocalDateTime.now().withNano(0) + 
@@ -280,7 +274,6 @@ class HelpCommand implements Command {
         "[<task name> | {S|M|L|XL}]\nhelp\n";
     @Override
     public void execute(String[] input, Map<String, Task> taskMap) {
-        checkCommandFormat(input);
         System.out.println(HELP_MESSAGE);
     }
    
@@ -306,7 +299,6 @@ class SummaryCommand implements Command {
     @Override
     public void execute(String[] input, Map<String, Task> taskMap) {
         this.taskMap = taskMap;
-        checkCommandFormat(input);
         if (input.length == 1) {
             this.summaryPredicate = task -> true;
         } else if (Arrays.asList(SIZES).contains(input[1].toUpperCase())) {
@@ -453,7 +445,7 @@ class TaskManager {
     
     private TaskManager() throws FileNotFoundException {
         this.commandMap = CommandMapFactory.createCommandMap();
-        this.taskMap = TaskMapProcessor.createTaskMap(commandMap);
+        this.taskMap = TaskMapProcessor.createTaskMap(  commandMap);
     }
 
     public void run(String[] input) throws IOException {
@@ -463,6 +455,7 @@ class TaskManager {
             validateCommand(commandString);
             CommandType action = CommandType.valueOf(commandString);
             Command command = commandMap.get(action);
+            command.checkCommandFormat(input);
             command.execute(input, this.taskMap);
         } catch (IllegalStateException e) {
             System.out.println(e.getMessage());
