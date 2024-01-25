@@ -286,7 +286,7 @@ class HelpCommand implements Command {
    
     @Override
     public void checkCommandFormat(String[] input) {
-        if (input.length == 1) {
+        if (input.length != 1) {
             throw new IllegalStateException("Usage: java TM.java help\n");
         }
     }
