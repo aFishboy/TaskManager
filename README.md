@@ -1,5 +1,6 @@
 Task Manager
-Usage:	
+
+Usage:
 To use the task manager open a command line and type: java TM.java <command> to run the task manager. For a full list of commands, see the commands.
 
 Problem Statement:
@@ -37,6 +38,7 @@ Error Handling:
 There are three main cases where our program will output an error: invalid command, formatting, and task conflicts. These formatting errors are thrown whenever there is a formatting error in either the command line input or the log. If an invalid command is inputted, it will print an error message with the help message to guide the user on what proper commands to use while if it is parsed in the log file, it will print an error message and the corresponding line.  If a formatting error is found on the command line, an error message will be printed containing the command’s usage and a reference to the help command while if found on the log file, an error message will be printed containing the line where the error occurred. Task conflicts will print the appropriate messages depending on the context some of these include: when a user tries running a task already running, deleting/creating/updating a task that doesn’t exist, and stopping a task that is already stopped.
 
 Appendix:
+
 Commands:
 To use a command type: java TM.java <command>
 Multi-word names and descriptions should be enclosed with quotations.
