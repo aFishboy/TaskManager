@@ -42,11 +42,17 @@ To use a command type: java TM.java <command>
 Multi-word names and descriptions should be enclosed with quotations.
 
 start <task name>  -- Logs start time of the given task
-stop <task name> -- Logs stop time of the given task
-describe <task name> <description> [{S|M|L|XL}] -- Logs the description and optional size of a given task
-size <task name> {S|M|L|XL} -- Logs the size of a given task
-rename <old task name>  <new task name> -- Renames a task
-delete <task name> -- Deletes given task
-summary [<task name> | {S|M|L|XL}] -- Gives a summary of all tasks or optional single tasks or a subset of class sizes and also shows the currently running task.
-help -- Displays usage and list of commands
 
+stop <task name> -- Logs stop time of the given task
+
+describe <task name> <description> [{S|M|L|XL}] -- Logs the description and optional size of a given task
+
+size <task name> {S|M|L|XL} -- Logs the size of a given task
+
+rename <old task name>  <new task name> -- Renames a task
+
+delete <task name> -- Deletes given task
+
+summary [<task name> | {S|M|L|XL}] -- Gives a summary of all tasks or optional single tasks or a subset of class sizes and also shows the currently running task.
+
+help -- Displays usage and list of commands
