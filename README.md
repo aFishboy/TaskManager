@@ -7,6 +7,7 @@ Problem Statement:
 Our goal was to create a lightweight, easy-to-use command line program to allow the user to track, modify, and summarize their day-to-day tasks. Users will need to start and stop tasks easily. Be able to describe and modify started task descriptions and names. Users should be able to associate a size with a task and delete any task. A summary should be given for all tasks, a specific or all tasks within a specific size category.
 
 Implementation:
+
 Program Input:
 On running the program the command line is stored in an array of strings to be further processed. A simple check is done on the input to ensure an allowed amount of arguments are given. Once validated a task manager object is created and passed the arguments to run the program.
 
@@ -40,6 +41,7 @@ There are three main cases where our program will output an error: invalid comma
 Appendix:
 
 Commands:
+
 To use a command type: java TM.java <command>
 Multi-word names and descriptions should be enclosed with quotations.
 
